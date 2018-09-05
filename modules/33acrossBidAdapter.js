@@ -26,6 +26,11 @@ function _createBidResponse(response) {
 function _createServerRequest(bidRequest) {
   const ttxRequest = {};
   const params = bidRequest.params;
+  const contributeViewability = ViewabilityContributor(
+    getPercentInView(document.getElementById(bidRequest.adUnitCode), window.top)
+  );
+
+  console.warn('_createServerRequest(), element bounds:', document.getElementById(bidRequest.adUnitCode).getBoundingClientRect());
 
   /*
    * Infer data for the request payload
@@ -40,7 +45,7 @@ function _createServerRequest(bidRequest) {
         prod: params.productId
       }
     }
-  }
+  };
   ttxRequest.site = { id: params.siteId };
   // Go ahead send the bidId in request to 33exchange so it's kept track of in the bid response and
   // therefore in ad targetting process
@@ -61,11 +66,14 @@ function _createServerRequest(bidRequest) {
   const ttxSettings = config.getConfig('ttxSettings');
   const url = (ttxSettings && ttxSettings.url) || END_POINT;
 
+  console.warn('_createServerRequest(), ttxRequest.imp[0].banner:', JSON.stringify(ttxRequest.imp[0].banner));
+  console.warn('_createServerRequest(), with viewability:', JSON.stringify(contributeViewability(ttxRequest).imp[0].banner));
+
   // Return the server request
   return {
     'method': 'POST',
     'url': url,
-    'data': JSON.stringify(ttxRequest),
+    'data': JSON.stringify(contributeViewability(ttxRequest)),
     'options': options
   }
 }
@@ -76,6 +84,92 @@ function _getFormatSize(sizeArr) {
     h: sizeArr[1],
     ext: {}
   }
+}
+
+function getBoundingBox(element) {
+  const { width, height, left, top, right, bottom } = element.getBoundingClientRect();
+
+  return { width, height, left, top, right, bottom };
+}
+
+function getIntersectionOfRects(rects) {
+  const bbox = {
+    left: rects[0].left,
+    right: rects[0].right,
+    top: rects[0].top,
+    bottom: rects[0].bottom
+  };
+
+  for (let i = 1; i < rects.length; ++i) {
+    bbox.left = Math.max(bbox.left, rects[i].left);
+    bbox.right = Math.min(bbox.right, rects[i].right);
+
+    if (bbox.left >= bbox.right) {
+      return null;
+    }
+
+    bbox.top = Math.max(bbox.top, rects[i].top);
+    bbox.bottom = Math.min(bbox.bottom, rects[i].bottom);
+
+    if (bbox.top >= bbox.bottom) {
+      return null;
+    }
+  }
+
+  bbox.width = bbox.right - bbox.left;
+  bbox.height = bbox.bottom - bbox.top;
+
+  return bbox;
+}
+
+function getPercentInView(element, topWin) {
+  const elementBoundingBox = getBoundingBox(element),
+
+    // Obtain the intersection of the element and the viewport
+    elementInViewBoundingBox = getIntersectionOfRects([{
+      left: 0,
+      top: 0,
+      right: topWin.innerWidth,
+      bottom: topWin.innerHeight
+    }, elementBoundingBox]);
+
+  let elementInViewArea, elementTotalArea;
+
+  if (elementInViewBoundingBox !== null) {
+    // Some or all of the element is in view
+    elementInViewArea = elementInViewBoundingBox.width * elementInViewBoundingBox.height;
+    elementTotalArea = elementBoundingBox.width * elementBoundingBox.height;
+
+    return ((elementInViewArea / elementTotalArea) * 100);
+  }
+
+  // No overlap between element and the viewport; therefore, the element
+  // lies completely out of view
+  return 0;
+}
+
+function ViewabilityContributor(viewabilityAmount) {
+  /**
+   * Adds viewability property to the request. Does not modify the original request.
+   *
+   * @param {Object} ttxRequest  TTX request to contribute viewability to.
+   *
+   * @return {Object}            New TTX request with viewbility property.
+   */
+  function contributeViewability(ttxRequest) {
+    const req = Object.assign({}, ttxRequest);
+    const imp = req.imp = req.imp.map(impItem => Object.assign({}, impItem));
+    const banner = imp[0].banner = Object.assign({}, imp[0].banner);
+    const ext = banner.ext = Object.assign({}, banner.ext);
+    const ttx = ext.ttx = Object.assign({}, ext.ttx);
+
+    // ttx.viewability = { amount: isNaN(viewabilityAmount) ? 'nm' : Math.round(viewabilityAmount) };
+    ttx.viewability = { amount: Math.round(viewabilityAmount) };
+
+    return req;
+  }
+
+  return contributeViewability;
 }
 
 // Register one sync per bid since each ad unit may potenitally be linked to a uniqe guid
@@ -110,6 +204,8 @@ function isBidRequestValid(bid) {
 
 // NOTE: At this point, 33exchange only accepts request for a single impression
 function buildRequests(bidRequests) {
+  console.warn('buildRequests.buildRequests():');
+
   return bidRequests.map(_createServerRequest);
 }
 
@@ -135,7 +231,7 @@ const spec = {
   isBidRequestValid,
   buildRequests,
   interpretResponse
-}
+};
 
 registerBidder(spec);
 
