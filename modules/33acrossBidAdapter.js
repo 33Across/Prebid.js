@@ -1,4 +1,5 @@
 import { userSync } from 'src/userSync'
+
 const { registerBidder } = require('../src/adapters/bidderFactory');
 const { config } = require('../src/config');
 
@@ -26,11 +27,11 @@ function _createBidResponse(response) {
 function _createServerRequest(bidRequest) {
   const ttxRequest = {};
   const params = bidRequest.params;
+  const element = document.getElementById(bidRequest.adUnitCode);
+  const sizes = bidRequest.sizes[0];
   const contributeViewability = ViewabilityContributor(
-    getPercentInView(document.getElementById(bidRequest.adUnitCode), window.top)
+    getPercentInView(element, window.top, { w: sizes[0], h: sizes[1] })
   );
-
-  console.warn('_createServerRequest(), element bounds:', document.getElementById(bidRequest.adUnitCode).getBoundingClientRect());
 
   /*
    * Infer data for the request payload
@@ -86,8 +87,18 @@ function _getFormatSize(sizeArr) {
   }
 }
 
-function getBoundingBox(element) {
-  const { width, height, left, top, right, bottom } = element.getBoundingClientRect();
+/**
+ * Viewability measurement based on ad target element size.
+ */
+function getBoundingBox(element, { w, h }) {
+  let { width, height, left, top, right, bottom } = element.getBoundingClientRect();
+
+  if (width === 0 || height === 0) {
+    width = w;
+    height = h;
+    right = left + w;
+    bottom = top + h;
+  }
 
   return { width, height, left, top, right, bottom };
 }
@@ -122,16 +133,16 @@ function getIntersectionOfRects(rects) {
   return bbox;
 }
 
-function getPercentInView(element, topWin) {
-  const elementBoundingBox = getBoundingBox(element),
+function getPercentInView(element, topWin, { w, h }) {
+  const elementBoundingBox = getBoundingBox(element, { w, h });
 
-    // Obtain the intersection of the element and the viewport
-    elementInViewBoundingBox = getIntersectionOfRects([{
-      left: 0,
-      top: 0,
-      right: topWin.innerWidth,
-      bottom: topWin.innerHeight
-    }, elementBoundingBox]);
+  // Obtain the intersection of the element and the viewport
+  const elementInViewBoundingBox = getIntersectionOfRects([{
+    left: 0,
+    top: 0,
+    right: topWin.innerWidth,
+    bottom: topWin.innerHeight
+  }, elementBoundingBox]);
 
   let elementInViewArea, elementTotalArea;
 
@@ -148,14 +159,10 @@ function getPercentInView(element, topWin) {
   return 0;
 }
 
+/**
+ * Viewability contribution to request..
+ */
 function ViewabilityContributor(viewabilityAmount) {
-  /**
-   * Adds viewability property to the request. Does not modify the original request.
-   *
-   * @param {Object} ttxRequest  TTX request to contribute viewability to.
-   *
-   * @return {Object}            New TTX request with viewbility property.
-   */
   function contributeViewability(ttxRequest) {
     const req = Object.assign({}, ttxRequest);
     const imp = req.imp = req.imp.map(impItem => Object.assign({}, impItem));
@@ -163,7 +170,6 @@ function ViewabilityContributor(viewabilityAmount) {
     const ext = banner.ext = Object.assign({}, banner.ext);
     const ttx = ext.ttx = Object.assign({}, ext.ttx);
 
-    // ttx.viewability = { amount: isNaN(viewabilityAmount) ? 'nm' : Math.round(viewabilityAmount) };
     ttx.viewability = { amount: Math.round(viewabilityAmount) };
 
     return req;
@@ -204,8 +210,6 @@ function isBidRequestValid(bid) {
 
 // NOTE: At this point, 33exchange only accepts request for a single impression
 function buildRequests(bidRequests) {
-  console.warn('buildRequests.buildRequests():');
-
   return bidRequests.map(_createServerRequest);
 }
 
