@@ -1,4 +1,5 @@
-import { userSync } from 'src/userSync'
+import { userSync } from 'src/userSync';
+import * as utils from 'src/utils';
 
 const { registerBidder } = require('../src/adapters/bidderFactory');
 const { config } = require('../src/config');
@@ -28,9 +29,11 @@ function _createServerRequest(bidRequest) {
   const ttxRequest = {};
   const params = bidRequest.params;
   const element = document.getElementById(bidRequest.adUnitCode);
-  const sizes = bidRequest.sizes[0];
+  const sizes = transformSizes(bidRequest.sizes);
+  const minSize = getMinSize(sizes);
+
   const contributeViewability = ViewabilityContributor(
-    getPercentInView(element, window.top, { w: sizes[0], h: sizes[1] })
+    getPercentInView(element, window.top, minSize)
   );
 
   /*
@@ -39,7 +42,7 @@ function _createServerRequest(bidRequest) {
   ttxRequest.imp = [];
   ttxRequest.imp[0] = {
     banner: {
-      format: bidRequest.sizes.map(_getFormatSize)
+      format: Object.assign({ext: {}}, sizes)
     },
     ext: {
       ttx: {
@@ -79,15 +82,28 @@ function _createServerRequest(bidRequest) {
   }
 }
 
-function _getFormatSize(sizeArr) {
+function transformSizes(sizes) {
+  if (utils.isArray(sizes) && sizes.length === 2 && !utils.isArray(sizes[0])) {
+    return [getSize(sizes)];
+  }
+
+  return sizes.map(getSize);
+}
+
+function getSize(size) {
   return {
-    w: sizeArr[0],
-    h: sizeArr[1],
-    ext: {}
+    w: parseInt(size[0], 10),
+    h: parseInt(size[1], 10)
   }
 }
 
+function getMinSize(sizes) {
+  return sizes.reduce((min, size) => size.h * size.w < min.h * min.w ? size : min);
+}
+
 function getIntersectionOfRects(rects) {
+  console.warn('getIntersectionOfRects.getIntersectionOfRects():', rects);
+
   const bbox = {
     left: rects[0].left,
     right: rects[0].right,
