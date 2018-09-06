@@ -101,9 +101,20 @@ function getMinSize(sizes) {
   return sizes.reduce((min, size) => size.h * size.w < min.h * min.w ? size : min);
 }
 
-function getIntersectionOfRects(rects) {
-  console.warn('getIntersectionOfRects.getIntersectionOfRects():', rects);
+function getBoundingBox(element, { w, h } = {}) {
+  let { width, height, left, top, right, bottom } = element.getBoundingClientRect();
 
+  if ((width === 0 || height === 0) && w && h) {
+    width = w;
+    height = h;
+    right = left + w;
+    bottom = top + h;
+  }
+
+  return { width, height, left, top, right, bottom };
+}
+
+function getIntersectionOfRects(rects) {
   const bbox = {
     left: rects[0].left,
     right: rects[0].right,
@@ -134,27 +145,17 @@ function getIntersectionOfRects(rects) {
 }
 
 function getPercentInView(element, topWin, { w, h } = {}) {
-  let elementInViewArea, elementTotalArea;
-  let elementBoundingBox, elementInViewBoundingBox;
-  let { width, height, left, top, right, bottom } = element.getBoundingClientRect();
-
-  if ((width === 0 || height === 0) && w && h) {
-    console.warn('getBoundingBox(): using ad size for calculation');
-    width = w;
-    height = h;
-    right = left + w;
-    bottom = top + h;
-  }
-
-  elementBoundingBox = { width, height, left, top, right, bottom };
+  const elementBoundingBox = getBoundingBox(element, { w, h });
 
   // Obtain the intersection of the element and the viewport
-  elementInViewBoundingBox = getIntersectionOfRects([{
+  const elementInViewBoundingBox = getIntersectionOfRects([ {
     left: 0,
     top: 0,
     right: topWin.innerWidth,
     bottom: topWin.innerHeight
-  }, elementBoundingBox]);
+  }, elementBoundingBox ]);
+
+  let elementInViewArea, elementTotalArea;
 
   if (elementInViewBoundingBox !== null) {
     // Some or all of the element is in view
