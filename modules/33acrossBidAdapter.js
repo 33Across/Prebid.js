@@ -29,11 +29,11 @@ function _createServerRequest(bidRequest) {
   const ttxRequest = {};
   const params = bidRequest.params;
   const element = document.getElementById(bidRequest.adUnitCode);
-  const sizes = transformSizes(bidRequest.sizes);
-  const minSize = getMinSize(sizes);
+  const sizes = _transformSizes(bidRequest.sizes);
+  const minSize = _getMinSize(sizes);
 
   const contributeViewability = ViewabilityContributor(
-    getPercentInView(element, window.top, minSize)
+    _getPercentInView(element, window.top, minSize)
   );
 
   /*
@@ -42,7 +42,7 @@ function _createServerRequest(bidRequest) {
   ttxRequest.imp = [];
   ttxRequest.imp[0] = {
     banner: {
-      format: Object.assign({ext: {}}, sizes)
+      format: sizes.map(size => Object.assign(size, {ext: {}}))
     },
     ext: {
       ttx: {
@@ -70,9 +70,6 @@ function _createServerRequest(bidRequest) {
   const ttxSettings = config.getConfig('ttxSettings');
   const url = (ttxSettings && ttxSettings.url) || END_POINT;
 
-  console.warn('_createServerRequest(), ttxRequest.imp[0].banner:', JSON.stringify(ttxRequest.imp[0].banner));
-  console.warn('_createServerRequest(), with viewability:', JSON.stringify(contributeViewability(ttxRequest).imp[0].banner));
-
   // Return the server request
   return {
     'method': 'POST',
@@ -82,26 +79,18 @@ function _createServerRequest(bidRequest) {
   }
 }
 
-function transformSizes(sizes) {
-  if (utils.isArray(sizes) && sizes.length === 2 && !utils.isArray(sizes[0])) {
-    return [getSize(sizes)];
-  }
-
-  return sizes.map(getSize);
-}
-
-function getSize(size) {
+function _getSize(size) {
   return {
     w: parseInt(size[0], 10),
     h: parseInt(size[1], 10)
   }
 }
 
-function getMinSize(sizes) {
+function _getMinSize(sizes) {
   return sizes.reduce((min, size) => size.h * size.w < min.h * min.w ? size : min);
 }
 
-function getBoundingBox(element, { w, h } = {}) {
+function _getBoundingBox(element, { w, h } = {}) {
   let { width, height, left, top, right, bottom } = element.getBoundingClientRect();
 
   if ((width === 0 || height === 0) && w && h) {
@@ -114,7 +103,15 @@ function getBoundingBox(element, { w, h } = {}) {
   return { width, height, left, top, right, bottom };
 }
 
-function getIntersectionOfRects(rects) {
+function _transformSizes(sizes) {
+  if (utils.isArray(sizes) && sizes.length === 2 && !utils.isArray(sizes[0])) {
+    return [_getSize(sizes)];
+  }
+
+  return sizes.map(_getSize);
+}
+
+function _getIntersectionOfRects(rects) {
   const bbox = {
     left: rects[0].left,
     right: rects[0].right,
@@ -144,11 +141,11 @@ function getIntersectionOfRects(rects) {
   return bbox;
 }
 
-function getPercentInView(element, topWin, { w, h } = {}) {
-  const elementBoundingBox = getBoundingBox(element, { w, h });
+function _getPercentInView(element, topWin, { w, h } = {}) {
+  const elementBoundingBox = _getBoundingBox(element, { w, h });
 
   // Obtain the intersection of the element and the viewport
-  const elementInViewBoundingBox = getIntersectionOfRects([ {
+  const elementInViewBoundingBox = _getIntersectionOfRects([ {
     left: 0,
     top: 0,
     right: topWin.innerWidth,
@@ -170,6 +167,24 @@ function getPercentInView(element, topWin, { w, h } = {}) {
   return 0;
 }
 
+// Register one sync per bid since each ad unit may potenitally be linked to a uniqe guid
+// Sync type will always be 'iframe' for 33Across
+function _registerUserSyncs(requestData) {
+  let ttxRequest;
+  try {
+    ttxRequest = JSON.parse(requestData);
+  } catch (err) {
+    // No point in trying to register sync since the requisite data cannot be parsed.
+    return;
+  }
+  const ttxSettings = config.getConfig('ttxSettings');
+
+  let syncUrl = (ttxSettings && ttxSettings.syncUrl) || SYNC_ENDPOINT;
+
+  syncUrl = `${syncUrl}&id=${ttxRequest.site.id}`;
+  userSync.registerSync('iframe', BIDDER_CODE, syncUrl);
+}
+
 /**
  * Viewability contribution to request..
  */
@@ -187,24 +202,6 @@ function ViewabilityContributor(viewabilityAmount) {
   }
 
   return contributeViewability;
-}
-
-// Register one sync per bid since each ad unit may potenitally be linked to a uniqe guid
-// Sync type will always be 'iframe' for 33Across
-function _registerUserSyncs(requestData) {
-  let ttxRequest;
-  try {
-    ttxRequest = JSON.parse(requestData);
-  } catch (err) {
-    // No point in trying to register sync since the requisite data cannot be parsed.
-    return;
-  }
-  const ttxSettings = config.getConfig('ttxSettings');
-
-  let syncUrl = (ttxSettings && ttxSettings.syncUrl) || SYNC_ENDPOINT;
-
-  syncUrl = `${syncUrl}&id=${ttxRequest.site.id}`;
-  userSync.registerSync('iframe', BIDDER_CODE, syncUrl);
 }
 
 function isBidRequestValid(bid) {
