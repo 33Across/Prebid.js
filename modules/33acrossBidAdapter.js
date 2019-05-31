@@ -69,8 +69,9 @@ function _createServerRequest(bidRequest, gdprConsent) {
   const element = _getAdSlotHTMLElement(bidRequest.adUnitCode);
   const sizes = _transformSizes(bidRequest.sizes);
   const minSize = _getMinSize(sizes);
+  const isInView = params.productId === INVIEW;
 
-  const viewabilityAmount = params.productId === INVIEW
+  const viewabilityAmount = isInView
     ? 100
     : _isViewabilityMeasurable(element)
       ? _getViewability(element, utils.getWindowTop(), minSize)
