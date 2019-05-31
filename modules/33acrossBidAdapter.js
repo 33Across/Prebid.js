@@ -8,6 +8,7 @@ const SYNC_ENDPOINT = 'https://de.tynt.com/deb/v2?m=xch&rt=html';
 
 const adapterState = {};
 
+const INVIEW = 'inview';
 const NON_MEASURABLE = 'nm';
 
 // All this assumes that only one bid is ever returned by ttx
@@ -69,9 +70,11 @@ function _createServerRequest(bidRequest, gdprConsent) {
   const sizes = _transformSizes(bidRequest.sizes);
   const minSize = _getMinSize(sizes);
 
-  const viewabilityAmount = _isViewabilityMeasurable(element)
-    ? _getViewability(element, utils.getWindowTop(), minSize)
-    : NON_MEASURABLE;
+  const viewabilityAmount = params.productId === INVIEW
+    ? 100
+    : _isViewabilityMeasurable(element)
+      ? _getViewability(element, utils.getWindowTop(), minSize)
+      : NON_MEASURABLE;
 
   const contributeViewability = ViewabilityContributor(viewabilityAmount);
 
