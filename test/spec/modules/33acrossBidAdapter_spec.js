@@ -70,35 +70,28 @@ describe('33acrossBidAdapter:', function () {
     };
 
     this.withSizes = sizes => {
-      Object.assign(ttxRequest.imp[0].banner, { format: sizes });
+      Object.assign(ttxRequest.imp[0].banner, {format: sizes});
       return this;
     };
 
     this.withViewabiliuty = viewability => {
-      Object.assign(ttxRequest.imp[0].banner, {
-        ext: {
-          ttx: { viewability }
-        }
-      });
+      Object.assign(ttxRequest.imp[0].banner.ext.ttx, {viewability});
       return this;
     };
 
     this.withGdprConsent = (consent, gdpr) => {
-      Object.assign(ttxRequest, {
-        user: {
-          ext: { consent }
-        }
-      });
-      Object.assign(ttxRequest, {
-        regs: {
-          ext: { gdpr }
-        }
-      });
+      Object.assign(ttxRequest.user.ext, {consent});
+      Object.assign(ttxRequest.regs.ext, {gdpr});
       return this;
     };
 
     this.withSite = site => {
       Object.assign(ttxRequest, { site });
+      return this;
+    };
+
+    this.withProductId = productId => {
+      Object.assign(ttxRequest.imp[0].ext.ttx, {prod: productId});
       return this;
     };
 
@@ -277,6 +270,22 @@ describe('33acrossBidAdapter:', function () {
       });
     });
 
+    context('when product is \'inview\'', function() {
+      it('returns 100', function() {
+        const ttxRequest = new TtxRequestBuilder()
+          .withViewabiliuty({amount: 100})
+          .withProductId('inview')
+          .build();
+        const serverRequest = new ServerRequestBuilder()
+          .withData(ttxRequest)
+          .build();
+
+        bidRequests[0].params.productId = 'inview';
+
+        expect(spec.buildRequests(bidRequests)).to.deep.equal([ serverRequest ]);
+      });
+    });
+
     context('when element is out of view', function() {
       it('returns 0', function() {
         const ttxRequest = new TtxRequestBuilder()
@@ -287,6 +296,23 @@ describe('33acrossBidAdapter:', function () {
           .build();
 
         Object.assign(element, { x: -300, y: 0, width: 207, height: 320 });
+
+        expect(spec.buildRequests(bidRequests)).to.deep.equal([ serverRequest ]);
+      });
+    });
+
+    context('when tab is not active', function() {
+      it('returns 0', function() {
+        const ttxRequest = new TtxRequestBuilder()
+          .withViewabiliuty({amount: 0})
+          .build();
+        const serverRequest = new ServerRequestBuilder()
+          .withData(ttxRequest)
+          .build();
+
+        Object.assign(element, { width: 600, height: 400 });
+
+        win.document.visibilityState = 'hidden';
 
         expect(spec.buildRequests(bidRequests)).to.deep.equal([ serverRequest ]);
       });
