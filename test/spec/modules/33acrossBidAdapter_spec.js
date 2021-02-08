@@ -25,11 +25,17 @@ describe('33acrossBidAdapter:', function () {
 
   function TtxRequestBuilder() {
     const ttxRequest = {
-      imp: [{}],
+      imp: [{
+        id: 'b1'
+      }],
       site: {
         id: SITE_ID
       },
-      id: 'b1',
+      id: 'r1',
+      user: {
+        ext: {
+        }
+      },
       regs: {
         ext: {
           gdpr: 0

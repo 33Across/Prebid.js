@@ -147,52 +147,71 @@ function buildRequests(bidRequests, bidderRequest) {
 
   adapterState.uniqueSiteIds = bidRequests.map(req => req.params.siteId).filter(utils.uniques);
 
-  return bidRequests.map(bidRequest => _createServerRequest(
-    {
-      bidRequest,
-      gdprConsent,
-      uspConsent,
-      pageUrl
-    })
-  );
+  const bidRequestsComplete = bidRequests.map(_inferProduct);
+
+  const enableSRAMode = config.getConfig('ttxSRAMode');
+
+  const keyFunc = (enableSRAMode === 'true') ? _getSRAKey : _getDefaultKey;
+  const groupedRequests = _groupBidRequests(bidRequestsComplete, keyFunc);
+
+  const serverRequests = [];
+
+  for (const key in groupedRequests) {
+    serverRequests.push(
+      _createServerRequest({
+        bidRequests: groupedRequests[key],
+        gdprConsent,
+        uspConsent,
+        pageUrl
+      })
+    )
+  }
+
+  return serverRequests;
+}
+
+function _groupBidRequests(bidRequests, keyFunc = _getDefaultKey) {
+  const groupedRequests = {};
+
+  bidRequests.forEach(function(req) {
+    const key = keyFunc(req);
+
+    groupedRequests[key] = groupedRequests[key] || [];
+    groupedRequests[key].push(req);
+  });
+
+  return groupedRequests;
+}
+
+function _getSRAKey(bidRequest) {
+  return `${bidRequest.params.siteId}:${bidRequest.params.productId}`;
+}
+
+function _getDefaultKey(bidRequest) {
+  return `${bidRequest.bidId}`;
 }
 
 // Infer the necessary data from valid bid for a minimal ttxRequest and create HTTP request
-// NOTE: At this point, TTX only accepts request for a single impression
-function _createServerRequest({bidRequest, gdprConsent = {}, uspConsent, pageUrl}) {
+function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUrl}) {
   const ttxRequest = {};
-  const params = bidRequest.params;
+  const { siteId, test } = bidRequests[0].params;
 
   /*
    * Infer data for the request payload
    */
-  ttxRequest.imp = [{}];
+  ttxRequest.imp = [];
 
-  if (utils.deepAccess(bidRequest, 'mediaTypes.banner')) {
-    ttxRequest.imp[0].banner = {
-      ..._buildBannerORTB(bidRequest)
-    }
-  }
+  bidRequests.forEach(function(req) {
+    ttxRequest.imp.push(_createImp(req));
+  });
 
-  if (utils.deepAccess(bidRequest, 'mediaTypes.video')) {
-    ttxRequest.imp[0].video = _buildVideoORTB(bidRequest);
-  }
-
-  ttxRequest.imp[0].ext = {
-    ttx: {
-      prod: _getProduct(bidRequest)
-    }
-  };
-
-  ttxRequest.site = { id: params.siteId };
+  ttxRequest.site = { id: siteId };
 
   if (pageUrl) {
     ttxRequest.site.page = pageUrl;
   }
 
-  // Go ahead send the bidId in request to 33exchange so it's kept track of in the bid response and
-  // therefore in ad targetting process
-  ttxRequest.id = bidRequest.bidId;
+  ttxRequest.id = bidRequests[0].auctionId;
 
   if (gdprConsent.consentString) {
     ttxRequest.user = setExtension(
@@ -234,16 +253,25 @@ function _createServerRequest({bidRequest, gdprConsent = {}, uspConsent, pageUrl
     }
   };
 
+<<<<<<< HEAD
   if (bidRequest.schain) {
     ttxRequest.source = setExtension(
       ttxRequest.source,
       'schain',
       bidRequest.schain
     )
+=======
+  if (bidRequests[0].schain) {
+    ttxRequest.source = {
+      ext: {
+        schain: bidRequests[0].schain
+      }
+    }
+>>>>>>> 0205f36b... Grouping requests for SRA
   }
 
   // Finally, set the openRTB 'test' param if this is to be a test bid
-  if (params.test === 1) {
+  if (test === 1) {
     ttxRequest.test = 1;
   }
 
@@ -257,7 +285,7 @@ function _createServerRequest({bidRequest, gdprConsent = {}, uspConsent, pageUrl
 
   // Allow the ability to configure the HB endpoint for testing purposes.
   const ttxSettings = config.getConfig('ttxSettings');
-  const url = (ttxSettings && ttxSettings.url) || `${END_POINT}?guid=${params.siteId}`;
+  const url = (ttxSettings && ttxSettings.url) || `${END_POINT}?guid=${siteId}`;
 
   // Return the server request
   return {
@@ -268,6 +296,7 @@ function _createServerRequest({bidRequest, gdprConsent = {}, uspConsent, pageUrl
   }
 }
 
+<<<<<<< HEAD
 // BUILD REQUESTS: SET EXTENSIONS
 function setExtension(obj = {}, key, value) {
   return Object.assign({}, obj, {
@@ -275,6 +304,31 @@ function setExtension(obj = {}, key, value) {
       [key]: value
     })
   });
+=======
+// BUILD REQUESTS: IMP
+function _createImp(bidRequest) {
+  const imp = {
+    id: bidRequest.bidId
+  };
+
+  if (utils.deepAccess(bidRequest, 'mediaTypes.banner')) {
+    imp.banner = {
+      ..._buildBannerORTB(bidRequest)
+    }
+  }
+
+  if (utils.deepAccess(bidRequest, 'mediaTypes.video')) {
+    imp.video = _buildVideoORTB(bidRequest);
+  }
+
+  imp.ext = {
+    ttx: {
+      prod: utils.deepAccess(bidRequest, 'params.productId')
+    }
+  };
+
+  return imp;
+>>>>>>> 0205f36b... Grouping requests for SRA
 }
 
 // BUILD REQUESTS: SIZE INFERENCE
@@ -294,6 +348,13 @@ function _getSize(size) {
 }
 
 // BUILD REQUESTS: PRODUCT INFERENCE
+function _inferProduct(bidRequest) {
+  const copy = Object.assign({}, bidRequest);
+  copy.params.productId = _getProduct(bidRequest);
+
+  return copy;
+}
+
 function _getProduct(bidRequest) {
   const { params, mediaTypes } = bidRequest;
 
