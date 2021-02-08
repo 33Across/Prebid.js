@@ -614,14 +614,19 @@ function _isIframe() {
 }
 
 // **************************** INTERPRET RESPONSE ******************************** //
-// NOTE: At this point, the response from 33exchange will only ever contain one bid
-// i.e. the highest bid
 function interpretResponse(serverResponse, bidRequest) {
   const bidResponses = [];
+  const { seatbid, cur } = serverResponse.body;
 
-  // If there are bids, look at the first bid of the first seatbid (see NOTE above for assumption about ttx)
-  if (serverResponse.body.seatbid.length > 0 && serverResponse.body.seatbid[0].bid.length > 0) {
-    bidResponses.push(_createBidResponse(serverResponse.body));
+  if (seatbid.length > 0) {
+    seatbid.forEach(function(seat) {
+      if (seat.bid.length > 0) {
+        seat.bid.forEach(function(bid) {
+          bid.cur = cur || 'USD';
+          bidResponses.push(_createBidResponse(bid));
+        });
+      }
+    });
   }
 
   return bidResponses;
@@ -630,21 +635,21 @@ function interpretResponse(serverResponse, bidRequest) {
 // All this assumes that only one bid is ever returned by ttx
 function _createBidResponse(response) {
   const bid = {
-    requestId: response.id,
+    requestId: response.impid,
     bidderCode: BIDDER_CODE,
-    cpm: response.seatbid[0].bid[0].price,
-    width: response.seatbid[0].bid[0].w,
-    height: response.seatbid[0].bid[0].h,
-    ad: response.seatbid[0].bid[0].adm,
-    ttl: response.seatbid[0].bid[0].ttl || 60,
-    creativeId: response.seatbid[0].bid[0].crid,
-    mediaType: utils.deepAccess(response.seatbid[0].bid[0], 'ext.ttx.mediaType', BANNER),
+    cpm: response.price,
+    width: response.w,
+    height: response.h,
+    ad: response.adm,
+    ttl: response.ttl || 60,
+    creativeId: response.crid,
+    mediaType: utils.deepAccess(response, 'ext.ttx.mediaType', BANNER),
     currency: response.cur,
     netRevenue: true
   }
 
   if (bid.mediaType === VIDEO) {
-    const vastType = utils.deepAccess(response.seatbid[0].bid[0], 'ext.ttx.vastType', 'xml');
+    const vastType = utils.deepAccess(response, 'ext.ttx.vastType', 'xml');
 
     if (vastType === 'xml') {
       bid.vastXml = bid.ad;

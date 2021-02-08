@@ -1411,11 +1411,12 @@ describe('33acrossBidAdapter:', function () {
         const serverResponse = {
           cur: 'USD',
           ext: {},
-          id: 'b1',
+          id: 'r1',
           seatbid: [
             {
               bid: [{
                 id: '1',
+                impid: 'b1',
                 adm: '<html><h3>I am an ad</h3></html>',
                 crid: 1,
                 h: 250,
@@ -1447,11 +1448,12 @@ describe('33acrossBidAdapter:', function () {
         const serverResponse = {
           cur: 'USD',
           ext: {},
-          id: 'b1',
+          id: 'r1',
           seatbid: [
             {
               bid: [{
                 id: '1',
+                impid: 'b1',
                 adm: videoBid,
                 ext: {
                   ttx: {
@@ -1491,7 +1493,7 @@ describe('33acrossBidAdapter:', function () {
         const serverResponse = {
           cur: 'USD',
           ext: {},
-          id: 'b1',
+          id: 'r1',
           seatbid: []
         };
 
@@ -1500,15 +1502,16 @@ describe('33acrossBidAdapter:', function () {
     });
 
     context('when more than one bids are returned', function() {
-      it('interprets and returns the the first bid of the first seatbid', function() {
+      it('interprets and returns all bids', function() {
         const serverResponse = {
           cur: 'USD',
           ext: {},
-          id: 'b1',
+          id: 'r1',
           seatbid: [
             {
               bid: [{
                 id: '1',
+                impid: 'b1',
                 adm: '<html><h3>I am an ad</h3></html>',
                 crid: 1,
                 h: 250,
@@ -1517,6 +1520,7 @@ describe('33acrossBidAdapter:', function () {
               },
               {
                 id: '2',
+                impid: 'b2',
                 adm: '<html><h3>I am an ad</h3></html>',
                 crid: 2,
                 h: 250,
@@ -1528,6 +1532,7 @@ describe('33acrossBidAdapter:', function () {
             {
               bid: [{
                 id: '3',
+                impid: 'b3',
                 adm: '<html><h3>I am an ad</h3></html>',
                 crid: 3,
                 h: 250,
@@ -1537,21 +1542,49 @@ describe('33acrossBidAdapter:', function () {
             }
           ]
         };
-        const bidResponse = {
-          requestId: 'b1',
-          bidderCode: BIDDER_CODE,
-          cpm: 0.0940,
-          width: 300,
-          height: 250,
-          ad: '<html><h3>I am an ad</h3></html>',
-          ttl: 60,
-          creativeId: 1,
-          mediaType: 'banner',
-          currency: 'USD',
-          netRevenue: true
-        };
+        const bidResponse = [
+          {
+            requestId: 'b1',
+            bidderCode: BIDDER_CODE,
+            cpm: 0.0940,
+            width: 300,
+            height: 250,
+            ad: '<html><h3>I am an ad</h3></html>',
+            ttl: 60,
+            creativeId: 1,
+            mediaType: 'banner',
+            currency: 'USD',
+            netRevenue: true
+          },
+          {
+            requestId: 'b2',
+            bidderCode: BIDDER_CODE,
+            cpm: 0.0938,
+            width: 300,
+            height: 250,
+            ad: '<html><h3>I am an ad</h3></html>',
+            ttl: 60,
+            creativeId: 2,
+            mediaType: 'banner',
+            currency: 'USD',
+            netRevenue: true
+          },
+          {
+            requestId: 'b3',
+            bidderCode: BIDDER_CODE,
+            cpm: 0.0938,
+            width: 300,
+            height: 250,
+            ad: '<html><h3>I am an ad</h3></html>',
+            ttl: 60,
+            creativeId: 3,
+            mediaType: 'banner',
+            currency: 'USD',
+            netRevenue: true
+          }
+        ];
 
-        expect(spec.interpretResponse({ body: serverResponse }, serverRequest)).to.deep.equal([bidResponse]);
+        expect(spec.interpretResponse({ body: serverResponse }, serverRequest)).to.deep.equal(bidResponse);
       });
     });
   });
