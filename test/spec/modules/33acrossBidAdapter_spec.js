@@ -23,13 +23,13 @@ describe('33acrossBidAdapter:', function () {
   let bidRequests;
   let sandbox;
 
-  function TtxRequestBuilder() {
+  function TtxRequestBuilder(siteId = SITE_ID) {
     const ttxRequest = {
       imp: [{
         id: 'b1'
       }],
       site: {
-        id: SITE_ID
+        id: siteId
       },
       id: 'r1',
       user: {
@@ -52,66 +52,83 @@ describe('33acrossBidAdapter:', function () {
       }
     };
 
+    this.addImp = (id = 'b2') => {
+      ttxRequest.imp.push({ id });
+
+      return this;
+    }
+
     this.withBanner = () => {
-      Object.assign(ttxRequest.imp[0], {
-        banner: {
-          format: [
-            {
-              w: 300,
-              h: 250
-            },
-            {
-              w: 728,
-              h: 90
-            }
-          ],
-          ext: {
-            ttx: {
-              viewability: {
-                amount: 100
+      ttxRequest.imp.forEach((imp) => {
+        Object.assign(imp, {
+          banner: {
+            format: [
+              {
+                w: 300,
+                h: 250
+              },
+              {
+                w: 728,
+                h: 90
+              }
+            ],
+            ext: {
+              ttx: {
+                viewability: {
+                  amount: 100
+                }
               }
             }
           }
-        }
+        });
+      });
+      return this;
+    };
+
+    this.withBannerSizes = this.withSizes = sizes => {
+      ttxRequest.imp.forEach((imp) => {
+        Object.assign(imp.banner, { format: sizes });
       });
 
       return this;
     };
 
-    this.withBannerSizes = this.withSizes = sizes => {
-      Object.assign(ttxRequest.imp[0].banner, { format: sizes });
-      return this;
-    };
-
     this.withVideo = (params = {}) => {
-      Object.assign(ttxRequest.imp[0], {
-        video: {
-          w: 300,
-          h: 250,
-          placement: 2,
-          ...params
-        }
+      ttxRequest.imp.forEach((imp) => {
+        Object.assign(imp, {
+          video: {
+            w: 300,
+            h: 250,
+            placement: 2,
+            ...params
+          }
+        });
       });
 
       return this;
     };
 
     this.withViewability = (viewability, format = 'banner') => {
-      Object.assign(ttxRequest.imp[0][format], {
-        ext: {
-          ttx: { viewability }
-        }
+      ttxRequest.imp.forEach((imp) => {
+        Object.assign(imp[format], {
+          ext: {
+            ttx: { viewability }
+          }
+        });
       });
+
       return this;
     };
 
     this.withProduct = (prod = PRODUCT_ID) => {
-      Object.assign(ttxRequest.imp[0], {
-        ext: {
-          ttx: {
-            prod
+      ttxRequest.imp.forEach((imp) => {
+        Object.assign(imp, {
+          ext: {
+            ttx: {
+              prod
+            }
           }
-        }
+        });
       });
 
       return this;
@@ -264,13 +281,34 @@ describe('33acrossBidAdapter:', function () {
       }
     ];
 
+    this.addBid = (bidParams = {}) => {
+      bidRequests.push({
+        bidId: 'b2',
+        bidder: '33across',
+        bidderRequestId: 'b1b',
+        params: {
+          siteId: SITE_ID,
+          productId: PRODUCT_ID
+        },
+        adUnitCode: 'div-id1',
+        auctionId: 'r1',
+        mediaTypes: {},
+        transactionId: 't2',
+        ...bidParams
+      });
+
+      return this;
+    };
+
     this.withBanner = () => {
-      bidRequests[0].mediaTypes.banner = {
-        sizes: [
-          [300, 250],
-          [728, 90]
-        ]
-      };
+      bidRequests.forEach((bid) => {
+        bid.mediaTypes.banner = {
+          sizes: [
+            [300, 250],
+            [728, 90]
+          ]
+        };
+      });
 
       return this;
     };
@@ -282,11 +320,13 @@ describe('33acrossBidAdapter:', function () {
     };
 
     this.withVideo = (params) => {
-      bidRequests[0].mediaTypes.video = {
-        playerSize: [[300, 250]],
-        context: 'outstream',
-        ...params
-      };
+      bidRequests.forEach((bid) => {
+        bid.mediaTypes.video = {
+          playerSize: [[300, 250]],
+          context: 'outstream',
+          ...params
+        };
+      });
 
       return this;
     }
@@ -337,7 +377,7 @@ describe('33acrossBidAdapter:', function () {
 
     sandbox = sinon.sandbox.create();
     sandbox.stub(Date, 'now').returns(1);
-    sandbox.stub(document, 'getElementById').withArgs('div-id').returns(element);
+    sandbox.stub(document, 'getElementById').returns(element);
     sandbox.stub(utils, 'getWindowTop').returns(win);
     sandbox.stub(utils, 'getWindowSelf').returns(win);
   });
@@ -1380,6 +1420,58 @@ describe('33acrossBidAdapter:', function () {
 
           expect(JSON.parse(builtServerRequest.data)).to.deep.equal(ttxRequest);
         });
+      });
+    });
+
+    context('when SRA mode is enabled', function() {
+      it('builds a single request with multiple imps corresponding to each group {siteId, productId}', function() {
+        sandbox.stub(config, 'getConfig').callsFake(() => {
+          return {
+            enableSRAMode: 'true'
+          }
+        });
+
+        const bidRequests = new BidRequestsBuilder()
+          .addBid()
+          .addBid({
+            bidId: 'b3',
+            adUnitCode: 'div-id',
+            params: {
+              siteId: 'sample33xGUID123456780',
+              productId: PRODUCT_ID
+            }
+          })
+          .withBanner()
+          .withVideo({context: 'outstream'})
+          .build();
+
+        const req1 = new TtxRequestBuilder()
+          .addImp()
+          .withBanner()
+          .withVideo()
+          .withProduct('siab')
+          .build();
+
+        const req2 = new TtxRequestBuilder('sample33xGUID123456780')
+          .withBanner()
+          .withVideo()
+          .withProduct('siab')
+          .build();
+
+        req2.imp[0].id = 'b3';
+
+        const serverReq1 = new ServerRequestBuilder()
+          .withData(req1)
+          .build();
+
+        const serverReq2 = new ServerRequestBuilder()
+          .withData(req2)
+          .withUrl('https://ssc.33across.com/api/v1/hb?guid=sample33xGUID123456780')
+          .build();
+
+        const builtServerRequests = spec.buildRequests(bidRequests, {});
+
+        expect(builtServerRequests).to.deep.equal([serverReq1, serverReq2]);
       });
     });
   });

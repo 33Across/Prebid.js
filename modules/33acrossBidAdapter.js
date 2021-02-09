@@ -137,11 +137,11 @@ function _validateVideo(bid) {
 // NOTE: With regards to gdrp consent data, the server will independently
 // infer the gdpr applicability therefore, setting the default value to false
 function buildRequests(bidRequests, bidderRequest) {
+  const ttxSettings = config.getConfig('ttxSettings');
   const gdprConsent = Object.assign({
     consentString: undefined,
     gdprApplies: false
   }, bidderRequest && bidderRequest.gdprConsent);
-
   const uspConsent = bidderRequest && bidderRequest.uspConsent;
   const pageUrl = (bidderRequest && bidderRequest.refererInfo) ? (bidderRequest.refererInfo.referer) : (undefined);
 
@@ -149,7 +149,7 @@ function buildRequests(bidRequests, bidderRequest) {
 
   const bidRequestsComplete = bidRequests.map(_inferProduct);
 
-  const enableSRAMode = config.getConfig('ttxSRAMode');
+  const enableSRAMode = ttxSettings && ttxSettings.enableSRAMode;
 
   const keyFunc = (enableSRAMode === 'true') ? _getSRAKey : _getDefaultKey;
   const groupedRequests = _groupBidRequests(bidRequestsComplete, keyFunc);
@@ -162,7 +162,8 @@ function buildRequests(bidRequests, bidderRequest) {
         bidRequests: groupedRequests[key],
         gdprConsent,
         uspConsent,
-        pageUrl
+        pageUrl,
+        ttxSettings
       })
     )
   }
@@ -192,7 +193,7 @@ function _getDefaultKey(bidRequest) {
 }
 
 // Infer the necessary data from valid bid for a minimal ttxRequest and create HTTP request
-function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUrl}) {
+function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUrl, ttxSettings}) {
   const ttxRequest = {};
   const { siteId, test } = bidRequests[0].params;
 
@@ -284,7 +285,7 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
   };
 
   // Allow the ability to configure the HB endpoint for testing purposes.
-  const ttxSettings = config.getConfig('ttxSettings');
+  // const ttxSettings = config.getConfig('ttxSettings');
   const url = (ttxSettings && ttxSettings.url) || `${END_POINT}?guid=${siteId}`;
 
   // Return the server request
