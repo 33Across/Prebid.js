@@ -290,7 +290,7 @@ describe('33acrossBidAdapter:', function () {
           siteId: SITE_ID,
           productId: PRODUCT_ID
         },
-        adUnitCode: 'div-id1',
+        adUnitCode: 'div-id',
         auctionId: 'r1',
         mediaTypes: {},
         transactionId: 't2',
@@ -1472,6 +1472,68 @@ describe('33acrossBidAdapter:', function () {
         const builtServerRequests = spec.buildRequests(bidRequests, {});
 
         expect(builtServerRequests).to.deep.equal([serverReq1, serverReq2]);
+      });
+    });
+
+    context('when SRA mode is not enabled', function() {
+      it('builds multiple requests, one corresponding to each Ad Unit', function() {
+        const bidRequests = new BidRequestsBuilder()
+          .addBid()
+          .addBid({
+            bidId: 'b3',
+            adUnitCode: 'div-id',
+            params: {
+              siteId: 'sample33xGUID123456780',
+              productId: PRODUCT_ID
+            }
+          })
+          .withBanner()
+          .withVideo({context: 'outstream'})
+          .build();
+
+        const req1 = new TtxRequestBuilder()
+          .withBanner()
+          .withVideo()
+          .withProduct('siab')
+          .build();
+
+        const req2 = new TtxRequestBuilder()
+          .withBanner()
+          .withVideo()
+          .withProduct('siab')
+          .build();
+
+        req2.imp[0].id = 'b2';
+
+        const req3 = new TtxRequestBuilder('sample33xGUID123456780')
+          .withBanner()
+          .withVideo()
+          .withProduct('siab')
+          .build();
+
+        req3.imp[0].id = 'b3';
+
+        const serverReq1 = new ServerRequestBuilder()
+          .withData(req1)
+          .build();
+
+        const serverReq2 = new ServerRequestBuilder()
+          .withData(req2)
+          .build();
+
+        const serverReq3 = new ServerRequestBuilder()
+          .withData(req3)
+          .withUrl('https://ssc.33across.com/api/v1/hb?guid=sample33xGUID123456780')
+          .build();
+
+        const builtServerRequests = spec.buildRequests(bidRequests, {});
+
+        expect(builtServerRequests)
+          .to.deep.equal([
+            serverReq1,
+            serverReq2,
+            serverReq3
+          ]);
       });
     });
   });
