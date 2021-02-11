@@ -285,7 +285,6 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
   };
 
   // Allow the ability to configure the HB endpoint for testing purposes.
-  // const ttxSettings = config.getConfig('ttxSettings');
   const url = (ttxSettings && ttxSettings.url) || `${END_POINT}?guid=${siteId}`;
 
   // Return the server request
@@ -619,9 +618,9 @@ function interpretResponse(serverResponse, bidRequest) {
   const bidResponses = [];
   const { seatbid, cur } = serverResponse.body;
 
-  if (seatbid.length > 0) {
+  if (utils.isArray(seatbid)) {
     seatbid.forEach(function(seat) {
-      if (seat.bid.length > 0) {
+      if (utils.isArray(seat.bid)) {
         seat.bid.forEach(function(bid) {
           bid.cur = cur || 'USD';
           bidResponses.push(_createBidResponse(bid));
