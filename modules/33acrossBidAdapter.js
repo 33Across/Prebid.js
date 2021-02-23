@@ -3,6 +3,7 @@ import { config } from '../src/config.js';
 import * as utils from '../src/utils.js';
 import {BANNER, VIDEO} from '../src/mediaTypes.js';
 
+// **************************** UTILS *************************** //
 const BIDDER_CODE = '33across';
 const END_POINT = 'https://ssc.33across.com/api/v1/hb';
 const SYNC_ENDPOINT = 'https://ssc-cms.33across.com/ps/?m=xch&rt=html&ru=deb';
@@ -38,6 +39,15 @@ const adapterState = {
 };
 
 const NON_MEASURABLE = 'nm';
+
+function getTTXConfig() {
+  const ttxSettings = Object.assign({},
+    config.getConfig('ttxSettings'),
+    config.getConfig('33Across')
+  );
+
+  return ttxSettings;
+}
 
 // **************************** VALIDATION *************************** //
 function isBidRequestValid(bid) {
@@ -137,12 +147,15 @@ function _validateVideo(bid) {
 // NOTE: With regards to gdrp consent data, the server will independently
 // infer the gdpr applicability therefore, setting the default value to false
 function buildRequests(bidRequests, bidderRequest) {
-  const ttxSettings = config.getConfig('ttxSettings');
+  const ttxSettings = getTTXConfig();
+
   const gdprConsent = Object.assign({
     consentString: undefined,
     gdprApplies: false
   }, bidderRequest && bidderRequest.gdprConsent);
+
   const uspConsent = bidderRequest && bidderRequest.uspConsent;
+
   const pageUrl = (bidderRequest && bidderRequest.refererInfo) ? (bidderRequest.refererInfo.referer) : (undefined);
 
   adapterState.uniqueSiteIds = bidRequests.map(req => req.params.siteId).filter(utils.uniques);
@@ -151,7 +164,7 @@ function buildRequests(bidRequests, bidderRequest) {
 
   const enableSRAMode = ttxSettings && ttxSettings.enableSRAMode;
 
-  const keyFunc = (enableSRAMode === 'true') ? _getSRAKey : _getDefaultKey;
+  const keyFunc = (enableSRAMode === true) ? _getSRAKey : _getDefaultKey;
   const groupedRequests = _groupBidRequests(bidRequestsComplete, keyFunc);
 
   const serverRequests = [];

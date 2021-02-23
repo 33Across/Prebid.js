@@ -1287,7 +1287,7 @@ describe('33acrossBidAdapter:', function () {
       it('builds a single request with multiple imps corresponding to each group {siteId, productId}', function() {
         sandbox.stub(config, 'getConfig').callsFake(() => {
           return {
-            enableSRAMode: 'true'
+            enableSRAMode: true
           }
         });
 
