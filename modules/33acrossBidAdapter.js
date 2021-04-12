@@ -235,11 +235,11 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
     )
   }
 
-  if (Array.isArray(bidRequest.userIdAsEids) && bidRequest.userIdAsEids.length > 0) {
+  if (Array.isArray(bidRequests[0].userIdAsEids) && bidRequests[0].userIdAsEids.length > 0) {
     ttxRequest.user = setExtension(
       ttxRequest.user,
       'eids',
-      bidRequest.userIdAsEids
+      bidRequests[0].userIdAsEids
     )
   }
 
@@ -267,21 +267,12 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
     }
   };
 
-<<<<<<< HEAD
-  if (bidRequest.schain) {
+  if (bidRequests[0].schain) {
     ttxRequest.source = setExtension(
       ttxRequest.source,
       'schain',
-      bidRequest.schain
-    )
-=======
-  if (bidRequests[0].schain) {
-    ttxRequest.source = {
-      ext: {
-        schain: bidRequests[0].schain
-      }
-    }
->>>>>>> 0205f36b... Grouping requests for SRA
+      bidRequests[0].schain
+    );
   }
 
   // Finally, set the openRTB 'test' param if this is to be a test bid
@@ -309,7 +300,6 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
   }
 }
 
-<<<<<<< HEAD
 // BUILD REQUESTS: SET EXTENSIONS
 function setExtension(obj = {}, key, value) {
   return Object.assign({}, obj, {
@@ -317,7 +307,8 @@ function setExtension(obj = {}, key, value) {
       [key]: value
     })
   });
-=======
+}
+
 // BUILD REQUESTS: IMP
 function _createImp(bidRequest) {
   const imp = {
@@ -341,7 +332,6 @@ function _createImp(bidRequest) {
   };
 
   return imp;
->>>>>>> 0205f36b... Grouping requests for SRA
 }
 
 // BUILD REQUESTS: SIZE INFERENCE

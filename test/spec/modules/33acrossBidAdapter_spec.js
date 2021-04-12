@@ -32,10 +32,6 @@ describe('33acrossBidAdapter:', function () {
         id: siteId
       },
       id: 'r1',
-      user: {
-        ext: {
-        }
-      },
       regs: {
         ext: {
           gdpr: 0
