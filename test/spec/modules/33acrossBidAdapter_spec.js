@@ -16,7 +16,6 @@ function validateBuiltServerRequest(builtReq, expectedReq) {
 describe('33acrossBidAdapter:', function () {
   const BIDDER_CODE = '33across';
   const SITE_ID = 'sample33xGUID123456789';
-  const PRODUCT_ID = 'siab';
   const END_POINT = 'https://ssc.33across.com/api/v1/hb';
 
   let element, win;
@@ -116,7 +115,7 @@ describe('33acrossBidAdapter:', function () {
       return this;
     };
 
-    this.withProduct = (prod = PRODUCT_ID) => {
+    this.withProduct = (prod = 'siab') => {
       ttxRequest.imp.forEach((imp) => {
         Object.assign(imp, {
           ext: {
@@ -268,7 +267,7 @@ describe('33acrossBidAdapter:', function () {
         bidderRequestId: 'b1a',
         params: {
           siteId: SITE_ID,
-          productId: PRODUCT_ID
+          productId: 'siab'
         },
         adUnitCode: 'div-id',
         auctionId: 'r1',
@@ -284,7 +283,7 @@ describe('33acrossBidAdapter:', function () {
         bidderRequestId: 'b1b',
         params: {
           siteId: SITE_ID,
-          productId: PRODUCT_ID
+          productId: 'siab'
         },
         adUnitCode: 'div-id',
         auctionId: 'r1',
@@ -1434,7 +1433,15 @@ describe('33acrossBidAdapter:', function () {
             adUnitCode: 'div-id',
             params: {
               siteId: 'sample33xGUID123456780',
-              productId: PRODUCT_ID
+              productId: 'siab'
+            }
+          })
+          .addBid({
+            bidId: 'b4',
+            adUnitCode: 'div-id',
+            params: {
+              siteId: 'sample33xGUID123456780',
+              productId: 'inview'
             }
           })
           .withBanner()
@@ -1456,6 +1463,14 @@ describe('33acrossBidAdapter:', function () {
 
         req2.imp[0].id = 'b3';
 
+        const req3 = new TtxRequestBuilder('sample33xGUID123456780')
+          .withBanner()
+          .withVideo()
+          .withProduct('inview')
+          .build();
+
+        req3.imp[0].id = 'b4';
+
         const serverReq1 = new ServerRequestBuilder()
           .withData(req1)
           .build();
@@ -1465,9 +1480,14 @@ describe('33acrossBidAdapter:', function () {
           .withUrl('https://ssc.33across.com/api/v1/hb?guid=sample33xGUID123456780')
           .build();
 
+        const serverReq3 = new ServerRequestBuilder()
+          .withData(req3)
+          .withUrl('https://ssc.33across.com/api/v1/hb?guid=sample33xGUID123456780')
+          .build();
+
         const builtServerRequests = spec.buildRequests(bidRequests, {});
 
-        expect(builtServerRequests).to.deep.equal([serverReq1, serverReq2]);
+        expect(builtServerRequests).to.deep.equal([serverReq1, serverReq2, serverReq3]);
       });
     });
 
@@ -1480,7 +1500,7 @@ describe('33acrossBidAdapter:', function () {
             adUnitCode: 'div-id',
             params: {
               siteId: 'sample33xGUID123456780',
-              productId: PRODUCT_ID
+              productId: 'siab'
             }
           })
           .withBanner()
@@ -1536,6 +1556,7 @@ describe('33acrossBidAdapter:', function () {
 
   describe('interpretResponse', function() {
     let ttxRequest, serverRequest;
+    const videoBid = '<VAST version="3.0"><Ad></Ad></VAST>';
 
     beforeEach(function() {
       ttxRequest = new TtxRequestBuilder()
@@ -1546,6 +1567,7 @@ describe('33acrossBidAdapter:', function () {
           page: 'https://test-url.com'
         })
         .build();
+
       serverRequest = new ServerRequestBuilder()
         .withUrl('https://staging-ssc.33across.com/api/v1/hb')
         .withData(ttxRequest)
@@ -1594,7 +1616,6 @@ describe('33acrossBidAdapter:', function () {
       });
 
       it('interprets and returns the single video bid response', function() {
-        const videoBid = '<VAST version="3.0"><Ad></Ad></VAST>';
         const serverResponse = {
           cur: 'USD',
           ext: {},
@@ -1683,7 +1704,13 @@ describe('33acrossBidAdapter:', function () {
               bid: [{
                 id: '3',
                 impid: 'b3',
-                adm: '<html><h3>I am an ad</h3></html>',
+                adm: videoBid,
+                ext: {
+                  ttx: {
+                    mediaType: 'video',
+                    vastType: 'xml'
+                  }
+                },
                 crid: 3,
                 h: 250,
                 w: 300,
@@ -1725,10 +1752,11 @@ describe('33acrossBidAdapter:', function () {
             cpm: 0.0938,
             width: 300,
             height: 250,
-            ad: '<html><h3>I am an ad</h3></html>',
+            ad: videoBid,
+            vastXml: '<VAST version=\"3.0\"><Ad></Ad></VAST>',
             ttl: 60,
             creativeId: 3,
-            mediaType: 'banner',
+            mediaType: 'video',
             currency: 'USD',
             netRevenue: true
           }

@@ -147,25 +147,14 @@ function _validateVideo(bid) {
 // NOTE: With regards to gdrp consent data, the server will independently
 // infer the gdpr applicability therefore, setting the default value to false
 function buildRequests(bidRequests, bidderRequest) {
-  const ttxSettings = getTTXConfig();
+  const {
+    ttxSettings,
+    gdprConsent,
+    uspConsent,
+    pageUrl
+  } = _buildRequestParams(bidRequests, bidderRequest);
 
-  const gdprConsent = Object.assign({
-    consentString: undefined,
-    gdprApplies: false
-  }, bidderRequest && bidderRequest.gdprConsent);
-
-  const uspConsent = bidderRequest && bidderRequest.uspConsent;
-
-  const pageUrl = (bidderRequest && bidderRequest.refererInfo) ? (bidderRequest.refererInfo.referer) : (undefined);
-
-  adapterState.uniqueSiteIds = bidRequests.map(req => req.params.siteId).filter(utils.uniques);
-
-  const bidRequestsComplete = bidRequests.map(_inferProduct);
-
-  const enableSRAMode = ttxSettings && ttxSettings.enableSRAMode;
-
-  const keyFunc = (enableSRAMode === true) ? _getSRAKey : _getDefaultKey;
-  const groupedRequests = _groupBidRequests(bidRequestsComplete, keyFunc);
+  const groupedRequests = _buildRequestGroups(ttxSettings, bidRequests);
 
   const serverRequests = [];
 
@@ -184,7 +173,37 @@ function buildRequests(bidRequests, bidderRequest) {
   return serverRequests;
 }
 
-function _groupBidRequests(bidRequests, keyFunc = _getDefaultKey) {
+function _buildRequestParams(bidRequests, bidderRequest) {
+  const ttxSettings = getTTXConfig();
+
+  const gdprConsent = Object.assign({
+    consentString: undefined,
+    gdprApplies: false
+  }, bidderRequest && bidderRequest.gdprConsent);
+
+  const uspConsent = bidderRequest && bidderRequest.uspConsent;
+
+  const pageUrl = (bidderRequest && bidderRequest.refererInfo) ? (bidderRequest.refererInfo.referer) : (undefined);
+
+  adapterState.uniqueSiteIds = bidRequests.map(req => req.params.siteId).filter(utils.uniques);
+
+  return {
+    ttxSettings,
+    gdprConsent,
+    uspConsent,
+    pageUrl
+  }
+}
+
+function _buildRequestGroups(ttxSettings, bidRequests) {
+  const bidRequestsComplete = bidRequests.map(_inferProduct);
+  const enableSRAMode = ttxSettings && ttxSettings.enableSRAMode;
+  const keyFunc = (enableSRAMode === true) ? _getSRAKey : _getMRAKey;
+
+  return _groupBidRequests(bidRequestsComplete, keyFunc);
+}
+
+function _groupBidRequests(bidRequests, keyFunc) {
   const groupedRequests = {};
 
   bidRequests.forEach(function(req) {
@@ -201,7 +220,7 @@ function _getSRAKey(bidRequest) {
   return `${bidRequest.params.siteId}:${bidRequest.params.productId}`;
 }
 
-function _getDefaultKey(bidRequest) {
+function _getMRAKey(bidRequest) {
   return `${bidRequest.bidId}`;
 }
 
@@ -618,50 +637,65 @@ function _isIframe() {
 
 // **************************** INTERPRET RESPONSE ******************************** //
 function interpretResponse(serverResponse, bidRequest) {
-  const bidResponses = [];
+  let bidResponses = [];
   const { seatbid, cur } = serverResponse.body;
 
-  if (utils.isArray(seatbid)) {
-    seatbid.forEach(function(seat) {
-      if (utils.isArray(seat.bid)) {
-        seat.bid.forEach(function(bid) {
-          bid.cur = cur || 'USD';
-          bidResponses.push(_createBidResponse(bid));
-        });
-      }
-    });
+  if (!utils.isArray(seatbid)) {
+    return bidResponses;
   }
+
+  // Pick seats with valid bids and convert them into an Array of responses
+  // in format expected by Prebid Core
+  bidResponses = (
+    seatbid
+      .filter((seat) => {
+        return (
+          utils.isArray(seat.bid) &&
+          seat.bid.length > 0
+        );
+      })
+      .map((seat) => {
+        return (
+          seat.bid
+            .map((bid) => {
+              bid.cur = cur || 'USD';
+              return _createBidResponse(bid);
+            })
+        );
+      })
+      .flat()
+  );
 
   return bidResponses;
 }
 
 // All this assumes that only one bid is ever returned by ttx
-function _createBidResponse(response) {
-  const bid = {
-    requestId: response.impid,
+function _createBidResponse(bid) {
+  const bidResponse = {
+    requestId: bid.impid,
     bidderCode: BIDDER_CODE,
-    cpm: response.price,
-    width: response.w,
-    height: response.h,
-    ad: response.adm,
-    ttl: response.ttl || 60,
-    creativeId: response.crid,
-    mediaType: utils.deepAccess(response, 'ext.ttx.mediaType', BANNER),
-    currency: response.cur,
+    cpm: bid.price,
+    width: bid.w,
+    height: bid.h,
+    ad: bid.adm,
+    ttl: bid.ttl || 60,
+    creativeId: bid.crid,
+    mediaType: utils.deepAccess(bid, 'ext.ttx.mediaType', BANNER),
+    currency: bid.cur,
     netRevenue: true
   }
 
-  if (bid.mediaType === VIDEO) {
-    const vastType = utils.deepAccess(response, 'ext.ttx.vastType', 'xml');
+  if (bidResponse.mediaType === VIDEO) {
+    const vastType = utils.deepAccess(bid, 'ext.ttx.vastType', 'xml');
 
     if (vastType === 'xml') {
-      bid.vastXml = bid.ad;
+      bidResponse.vastXml = bidResponse.ad;
     } else {
-      bid.vastUrl = bid.ad;
+      bidResponse.vastUrl = bidResponse.ad;
     }
   }
 
-  return bid;
+  return bidResponse;
 }
 
 // **************************** USER SYNC *************************** //
