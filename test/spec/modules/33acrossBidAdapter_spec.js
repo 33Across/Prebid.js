@@ -309,8 +309,9 @@ describe('33acrossBidAdapter:', function () {
     };
 
     this.withProduct = (prod) => {
-      bidRequests[0].params.productId = prod;
-
+      bidRequests.forEach((bid) => {
+        bid.params.productId = prod;
+      });
       return this;
     };
 
@@ -327,7 +328,9 @@ describe('33acrossBidAdapter:', function () {
     }
 
     this.withUserIds = (eids) => {
-      bidRequests[0].userIdAsEids = eids;
+      bidRequests.forEach((bid) => {
+        bid.userIdAsEids = eids;
+      });
 
       return this;
     };

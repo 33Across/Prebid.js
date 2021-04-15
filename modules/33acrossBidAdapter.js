@@ -669,7 +669,6 @@ function interpretResponse(serverResponse, bidRequest) {
   return bidResponses;
 }
 
-// All this assumes that only one bid is ever returned by ttx
 function _createBidResponse(bid) {
   const bidResponse = {
     requestId: bid.impid,
