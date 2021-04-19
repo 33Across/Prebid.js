@@ -638,7 +638,7 @@ function _isIframe() {
 // **************************** INTERPRET RESPONSE ******************************** //
 function interpretResponse(serverResponse, bidRequest) {
   let bidResponses = [];
-  const { seatbid, cur } = serverResponse.body;
+  const { seatbid, cur = 'USD' } = serverResponse.body;
 
   if (!utils.isArray(seatbid)) {
     return bidResponses;
@@ -648,19 +648,14 @@ function interpretResponse(serverResponse, bidRequest) {
   // in format expected by Prebid Core
   bidResponses = (
     seatbid
-      .filter((seat) => {
-        return (
-          utils.isArray(seat.bid) &&
-          seat.bid.length > 0
-        );
-      })
+      .filter((seat) => (
+        utils.isArray(seat.bid) &&
+        seat.bid.length > 0
+      ))
       .map((seat) => {
         return (
           seat.bid
-            .map((bid) => {
-              bid.cur = cur || 'USD';
-              return _createBidResponse(bid);
-            })
+            .map((bid) => _createBidResponse(bid, cur))
         );
       })
       .flat()
@@ -669,7 +664,7 @@ function interpretResponse(serverResponse, bidRequest) {
   return bidResponses;
 }
 
-function _createBidResponse(bid) {
+function _createBidResponse(bid, cur) {
   const bidResponse = {
     requestId: bid.impid,
     bidderCode: BIDDER_CODE,
@@ -680,7 +675,7 @@ function _createBidResponse(bid) {
     ttl: bid.ttl || 60,
     creativeId: bid.crid,
     mediaType: utils.deepAccess(bid, 'ext.ttx.mediaType', BANNER),
-    currency: bid.cur,
+    currency: cur,
     netRevenue: true
   }
 
