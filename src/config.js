@@ -16,7 +16,7 @@ import { isValidPriceConfig } from './cpmBucketManager.js';
 import find from 'core-js-pure/features/array/find.js';
 import includes from 'core-js-pure/features/array/includes.js';
 import Set from 'core-js-pure/features/set';
-import { mergeDeep } from './utils.js';
+import { mergeDeep, deepClone } from './utils.js';
 
 const from = require('core-js-pure/features/array/from.js');
 const utils = require('./utils.js');
@@ -29,6 +29,7 @@ const DEFAULT_ENABLE_SEND_ALL_BIDS = true;
 const DEFAULT_DISABLE_AJAX_TIMEOUT = false;
 const DEFAULT_BID_CACHE = false;
 const DEFAULT_DEVICE_ACCESS = true;
+const DEFAULT_MAX_NESTED_IFRAMES = 10;
 
 const DEFAULT_TIMEOUTBUFFER = 400;
 
@@ -200,6 +201,15 @@ export function newConfig() {
         this._disableAjaxTimeout = val;
       },
 
+      // default max nested iframes for referer detection
+      _maxNestedIframes: DEFAULT_MAX_NESTED_IFRAMES,
+      get maxNestedIframes() {
+        return this._maxNestedIframes;
+      },
+      set maxNestedIframes(val) {
+        this._maxNestedIframes = val;
+      },
+
       _auctionOptions: {},
       get auctionOptions() {
         return this._auctionOptions;
@@ -255,7 +265,7 @@ export function newConfig() {
       }
 
       for (let k of Object.keys(val)) {
-        if (k !== 'secondaryBidders') {
+        if (k !== 'secondaryBidders' && k !== 'suppressStaleRender') {
           utils.logWarn(`Auction Options given an incorrect param: ${k}`)
           return false
         }
@@ -266,6 +276,11 @@ export function newConfig() {
           } else if (!val[k].every(utils.isStr)) {
             utils.logWarn(`Auction Options ${k} must be only string`);
             return false
+          }
+        } else if (k === 'suppressStaleRender') {
+          if (!utils.isBoolean(val[k])) {
+            utils.logWarn(`Auction Options ${k} must be of type boolean`);
+            return false;
           }
         }
       }
@@ -298,6 +313,26 @@ export function newConfig() {
       }, {});
     }
     return Object.assign({}, config);
+  }
+
+  /*
+   * Returns the configuration object if called without parameters,
+   * or single configuration property if given a string matching a configuration
+   * property name.  Allows deep access e.g. getConfig('currency.adServerCurrency')
+   *
+   * If called with callback parameter, or a string and a callback parameter,
+   * subscribes to configuration updates. See `subscribe` function for usage.
+   *
+   * The object returned is a deepClone of the `config` property.
+   */
+  function readConfig(...args) {
+    if (args.length <= 1 && typeof args[0] !== 'function') {
+      const option = args[0];
+      const configClone = deepClone(_getConfig());
+      return option ? utils.deepAccess(configClone, option) : configClone;
+    }
+
+    return subscribe(...args);
   }
 
   /*
@@ -585,7 +620,7 @@ export function newConfig() {
     try {
       return fn();
     } finally {
-      currBidder = null;
+      resetBidder();
     }
   }
   function callbackWithBidder(bidder) {
@@ -604,11 +639,17 @@ export function newConfig() {
     return currBidder;
   }
 
+  function resetBidder() {
+    currBidder = null;
+  }
+
   resetConfig();
 
   return {
     getCurrentBidder,
+    resetBidder,
     getConfig,
+    readConfig,
     setConfig,
     setDefaults,
     resetConfig,

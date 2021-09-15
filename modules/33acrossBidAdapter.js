@@ -239,6 +239,7 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
   });
 
   ttxRequest.site = { id: siteId };
+  ttxRequest.device = _buildDeviceORTB();
 
   if (pageUrl) {
     ttxRequest.site.page = pageUrl;
@@ -247,33 +248,25 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
   ttxRequest.id = bidRequests[0].auctionId;
 
   if (gdprConsent.consentString) {
-    ttxRequest.user = setExtension(
-      ttxRequest.user,
-      'consent',
-      gdprConsent.consentString
-    )
+    ttxRequest.user = setExtensions(ttxRequest.user, {
+      'consent': gdprConsent.consentString
+    });
   }
 
   if (Array.isArray(bidRequests[0].userIdAsEids) && bidRequests[0].userIdAsEids.length > 0) {
-    ttxRequest.user = setExtension(
-      ttxRequest.user,
-      'eids',
-      bidRequests[0].userIdAsEids
-    )
+    ttxRequest.user = setExtensions(ttxRequest.user, {
+      'eids': bidRequests[0].userIdAsEids
+    });
   }
 
-  ttxRequest.regs = setExtension(
-    ttxRequest.regs,
-    'gdpr',
-    Number(gdprConsent.gdprApplies)
-  );
+  ttxRequest.regs = setExtensions(ttxRequest.regs, {
+    'gdpr': Number(gdprConsent.gdprApplies)
+  });
 
   if (uspConsent) {
-    ttxRequest.regs = setExtension(
-      ttxRequest.regs,
-      'us_privacy',
-      uspConsent
-    )
+    ttxRequest.regs = setExtensions(ttxRequest.regs, {
+      'us_privacy': uspConsent
+    });
   }
 
   ttxRequest.ext = {
@@ -287,11 +280,9 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
   };
 
   if (bidRequests[0].schain) {
-    ttxRequest.source = setExtension(
-      ttxRequest.source,
-      'schain',
-      bidRequests[0].schain
-    );
+    ttxRequest.source = setExtensions(ttxRequest.source, {
+      'schain': bidRequests[0].schain
+    });
   }
 
   // Finally, set the openRTB 'test' param if this is to be a test bid
@@ -320,11 +311,9 @@ function _createServerRequest({bidRequests, gdprConsent = {}, uspConsent, pageUr
 }
 
 // BUILD REQUESTS: SET EXTENSIONS
-function setExtension(obj = {}, key, value) {
+function setExtensions(obj = {}, extFields) {
   return Object.assign({}, obj, {
-    ext: Object.assign({}, obj.ext, {
-      [key]: value
-    })
+    ext: Object.assign({}, obj.ext, extFields)
   });
 }
 
@@ -665,6 +654,8 @@ function interpretResponse(serverResponse, bidRequest) {
 }
 
 function _createBidResponse(bid, cur) {
+  const isADomainPresent =
+    bid.adomain && bid.adomain.length;
   const bidResponse = {
     requestId: bid.impid,
     bidderCode: BIDDER_CODE,
@@ -677,6 +668,12 @@ function _createBidResponse(bid, cur) {
     mediaType: utils.deepAccess(bid, 'ext.ttx.mediaType', BANNER),
     currency: cur,
     netRevenue: true
+  }
+
+  if (isADomainPresent) {
+    bidResponse.meta = {
+      advertiserDomains: bid.adomain
+    };
   }
 
   if (bidResponse.mediaType === VIDEO) {
@@ -727,6 +724,73 @@ function _createSync({ siteId = 'zzz000000000003zzz', gdprConsent = {}, uspConse
   }
 
   return sync;
+}
+
+// BUILD REQUESTS: DEVICE
+function _buildDeviceORTB() {
+  const win = utils.getWindowSelf();
+
+  return setExtensions({
+    ...getScreenDimensions(),
+    pxratio: win.devicePixelRatio
+  }, {
+    ttx: {
+      viewport: getViewportDimensions(),
+      availheight: utils.getWindowSelf().screen.availHeight,
+      maxtouchpoints: win.navigator.maxTouchPoints
+    }
+  });
+}
+
+function getTopMostAccessibleWindow() {
+  let mostAccessibleWindow = utils.getWindowSelf();
+
+  try {
+    while (mostAccessibleWindow.parent !== mostAccessibleWindow &&
+      mostAccessibleWindow.parent.document) {
+      mostAccessibleWindow = mostAccessibleWindow.parent;
+    }
+  } catch (err) {
+    // Do not throw an exception if we can't access the topmost frame.
+  }
+
+  return mostAccessibleWindow;
+}
+
+function getViewportDimensions() {
+  const topWin = getTopMostAccessibleWindow();
+  const documentElement = topWin.document.documentElement;
+
+  return {
+    w: documentElement.clientWidth,
+    h: documentElement.clientHeight,
+  };
+}
+
+function getScreenDimensions() {
+  const {
+    innerWidth: windowWidth,
+    innerHeight: windowHeight,
+    screen
+  } = utils.getWindowSelf();
+
+  const [biggerDimension, smallerDimension] = [
+    Math.max(screen.width, screen.height),
+    Math.min(screen.width, screen.height),
+  ];
+
+  if (windowHeight > windowWidth) { // Portrait mode
+    return {
+      w: smallerDimension,
+      h: biggerDimension,
+    };
+  }
+
+  // Landscape mode
+  return {
+    w: biggerDimension,
+    h: smallerDimension,
+  };
 }
 
 export const spec = {

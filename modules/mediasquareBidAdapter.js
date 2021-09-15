@@ -101,8 +101,14 @@ export const spec = {
           mediasquare: {
             'bidder': value['bidder'],
             'code': value['code']
+          },
+          meta: {
+            'advertiserDomains': value['adomain']
           }
         };
+        if ('match' in value) {
+          bidResponse['mediasquare']['match'] = value['match'];
+        }
         if ('native' in value) {
           bidResponse['native'] = value['native'];
           bidResponse['mediaType'] = 'native';
@@ -128,7 +134,8 @@ export const spec = {
   getUserSyncs: function(syncOptions, serverResponses, gdprConsent, uspConsent) {
     let params = '';
     let endpoint = document.location.search.match(/msq_test=true/) ? BIDDER_URL_TEST : BIDDER_URL_PROD;
-    if (serverResponses[0].body.hasOwnProperty('cookies') && typeof serverResponses[0].body.cookies === 'object') {
+    if (typeof serverResponses === 'object' && serverResponses != null && serverResponses.length > 0 && serverResponses[0].hasOwnProperty('body') &&
+        serverResponses[0].body.hasOwnProperty('cookies') && typeof serverResponses[0].body.cookies === 'object') {
       return serverResponses[0].body.cookies;
     } else {
       if (gdprConsent && typeof gdprConsent.consentString === 'string') { params += typeof gdprConsent.gdprApplies === 'boolean' ? `&gdpr=${Number(gdprConsent.gdprApplies)}&gdpr_consent=${gdprConsent.consentString}` : `&gdpr_consent=${gdprConsent.consentString}`; }
@@ -148,16 +155,17 @@ export const spec = {
     // fires a pixel to confirm a winning bid
     let params = [];
     let endpoint = document.location.search.match(/msq_test=true/) ? BIDDER_URL_TEST : BIDDER_URL_PROD;
-    let paramsToSearchFor = ['cpm', 'size', 'mediaType', 'currency', 'creativeId', 'adUnitCode', 'timeToRespond']
+    let paramsToSearchFor = ['cpm', 'size', 'mediaType', 'currency', 'creativeId', 'adUnitCode', 'timeToRespond', 'requestId', 'auctionId']
     if (bid.hasOwnProperty('mediasquare')) {
       if (bid['mediasquare'].hasOwnProperty('bidder')) { params.push('bidder=' + bid['mediasquare']['bidder']); }
       if (bid['mediasquare'].hasOwnProperty('code')) { params.push('code=' + bid['mediasquare']['code']); }
+      if (bid['mediasquare'].hasOwnProperty('match')) { params.push('match=' + bid['mediasquare']['match']); }
     };
     for (let i = 0; i < paramsToSearchFor.length; i++) {
       if (bid.hasOwnProperty(paramsToSearchFor[i])) { params.push(paramsToSearchFor[i] + '=' + bid[paramsToSearchFor[i]]); }
     }
     if (params.length > 0) { params = '?' + params.join('&'); }
-    ajax(endpoint + BIDDER_ENDPOINT_WINNING + params, null);
+    ajax(endpoint + BIDDER_ENDPOINT_WINNING + params, null, undefined, {method: 'GET', withCredentials: true});
     return true;
   }
 
