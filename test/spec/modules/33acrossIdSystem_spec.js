@@ -44,7 +44,46 @@ describe('33acrossIdSystem', () => {
       expect(request.method).to.equal('GET');
       expect(request.withCredentials).to.be.true;
       expect(request.url).to.contain('https://lexicon.33across.com/v1/envelope?pid=12345');
-      expect(completeCallback.calledOnceWithExactly('foo')).to.be.true;
+      expect(completeCallback.calledOnceWithExactly({ envelope: 'foo', ext: {} })).to.be.true;
+    });
+
+    context('when some extensions are part of the response', () => {
+      it('should pass those extensions to the callback', () => {
+        const completeCallback = sinon.spy();
+
+        const { callback } = thirthyThreeAcrossIdSubmodule.getId({
+          params: {
+            pid: '12345'
+          }
+        });
+
+        callback(completeCallback);
+
+        const [request] = server.requests;
+
+        request.respond(200, {
+          'Content-Type': 'application/json'
+        }, JSON.stringify({
+          succeeded: true,
+          data: {
+            envelope: 'foo',
+            ext: {
+              fooPartnerName: {
+                id: 'fooPartnerId'
+              }
+            }
+          }
+        }));
+
+        expect(completeCallback.calledOnceWithExactly({
+          envelope: 'foo',
+          ext: {
+            fooPartnerName: {
+              id: 'fooPartnerId'
+            }
+          }
+        })).to.be.true;
+      });
     });
 
     context('when GDPR applies', () => {
@@ -402,10 +441,30 @@ describe('33acrossIdSystem', () => {
   })
 
   describe('decode', () => {
-    it('should wrap the given value inside an object literal', () => {
-      expect(thirthyThreeAcrossIdSubmodule.decode('foo')).to.deep.equal({
+    it('should expose the envelope inside a submodule namespace', () => {
+      expect(thirthyThreeAcrossIdSubmodule.decode({
+        envelope: 'foo'
+      })).to.deep.equal({
         [thirthyThreeAcrossIdSubmodule.name]: {
           envelope: 'foo'
+        }
+      });
+    });
+
+    it('should expose the given extensions for passing to bid requests', () => {
+      expect(thirthyThreeAcrossIdSubmodule.decode({
+        envelope: 'foo',
+        ext: {
+          fooPartnerName: {
+            id: 'fooPartnerId'
+          }
+        }
+      })).to.deep.equal({
+        [thirthyThreeAcrossIdSubmodule.name]: {
+          envelope: 'foo'
+        },
+        fooPartnerName: {
+          id: 'fooPartnerId'
         }
       });
     });

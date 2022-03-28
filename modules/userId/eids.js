@@ -314,6 +314,13 @@ export const USER_IDS_CONFIG = {
       return data.envelope;
     }
   },
+  'rubicon': {
+    source: 'rubiconproject.com',
+    atype: 1,
+    getValue: function(data) {
+      return data.id;
+    }
+  },
 };
 
 // this function will create an eid object for the given UserId sub-module

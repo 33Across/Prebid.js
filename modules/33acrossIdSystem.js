@@ -30,6 +30,20 @@ function getEnvelope(response) {
   return response.data.envelope;
 }
 
+function calculateResponseObj(responseText) {
+  const response = JSON.parse(responseText);
+  const envelope = getEnvelope(response);
+
+  if (!envelope) {
+    return;
+  }
+
+  return {
+    envelope,
+    ext: { ...response.data.ext }
+  };
+}
+
 function calculateQueryStringParams(pid, gdprConsentData) {
   const uspString = uspDataHandler.getConsentData();
   const gdprApplies = Boolean(gdprConsentData?.gdprApplies);
@@ -62,14 +76,15 @@ export const thirthyThreeAcrossIdSubmodule = {
   /**
    * decode the stored id value for passing to bid requests
    * @function
-   * @param {string} id
+   * @param {Object} responseObj
    * @returns {{'33acrossId':{ envelope: string}}}
    */
-  decode(id) {
+  decode(responseObj) {
     return {
       [MODULE_NAME]: {
-        envelope: id
-      }
+        envelope: responseObj.envelope
+      },
+      ...responseObj.ext
     };
   },
 
@@ -92,14 +107,14 @@ export const thirthyThreeAcrossIdSubmodule = {
       callback(cb) {
         ajaxBuilder(AJAX_TIMEOUT)(apiUrl, {
           success(response) {
-            let envelope;
+            let responseObj;
 
             try {
-              envelope = getEnvelope(JSON.parse(response))
+              responseObj = calculateResponseObj(response)
             } catch (err) {
               logError(`${MODULE_NAME}: ID reading error:`, err);
             }
-            cb(envelope);
+            cb(responseObj);
           },
           error(err) {
             logError(`${MODULE_NAME}: ID error response`, err);
