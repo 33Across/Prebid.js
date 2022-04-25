@@ -11,7 +11,7 @@ import { submodule } from '../src/hook.js';
 import { uspDataHandler } from '../src/adapterManager.js';
 
 const MODULE_NAME = 'lexicon';
-const LEXICON_URL = 'https://api-lexicon.33across.com/v1/envelope';
+const LEXICON_URL = 'https://lexicon.33across.com/v1/envelope';
 const AJAX_TIMEOUT = 10000;
 
 function getEnvelope(response) {
