@@ -281,7 +281,7 @@ describe('LexiconIdSystem', () => {
           error: 'foo'
         }));
 
-        expect(logErrorSpy.calledOnceWithExactly(`${lexiconIdSubmodule.name}: `, 'foo')).to.be.true;
+        expect(logErrorSpy.calledOnceWithExactly(`${lexiconIdSubmodule.name}: Unsuccessful response`)).to.be.true;
 
         logErrorSpy.restore();
       });
