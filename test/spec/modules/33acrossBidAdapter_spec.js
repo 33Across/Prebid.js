@@ -31,17 +31,17 @@ describe('33acrossBidAdapter:', function () {
         id: siteId
       },
       device: {
-        w: 1024,
-        h: 728,
-        pxratio: 2,
         ext: {
           ttx: {
-            viewport: {
+            w: 1024,
+            h: 728,
+            pxr: 2,
+            vp: {
               w: 800,
               h: 600
             },
-            availheight: 500,
-            maxtouchpoints: 0
+            ah: 500,
+            mtp: 0
           }
         }
       },
@@ -758,7 +758,7 @@ describe('33acrossBidAdapter:', function () {
             .withDevice({
               ext: {
                 ttx: {
-                  viewport: {
+                  vp: {
                     w: 6789,
                     h: 2345
                   }
@@ -800,7 +800,7 @@ describe('33acrossBidAdapter:', function () {
             .withDevice({
               ext: {
                 ttx: {
-                  viewport: {
+                  vp: {
                     w: 9876,
                     h: 5432
                   }
@@ -846,8 +846,12 @@ describe('33acrossBidAdapter:', function () {
       const ttxRequest = new TtxRequestBuilder()
         .withBanner()
         .withDevice({
-          w: 1024,
-          h: 728
+          ext: {
+            ttx: {
+              w: 1024,
+              h: 728
+            }
+          }
         })
         .withProduct()
         .build();
@@ -868,8 +872,12 @@ describe('33acrossBidAdapter:', function () {
         const ttxRequest = new TtxRequestBuilder()
           .withBanner()
           .withDevice({
-            w: 728,
-            h: 1024
+            ext: {
+              ttx: {
+                w: 728,
+                h: 1024
+              }
+            }
           })
           .withProduct()
           .build();
