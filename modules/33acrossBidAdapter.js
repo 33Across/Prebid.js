@@ -742,7 +742,7 @@ function _buildDeviceORTB() {
         ...getScreenDimensions(),
         pxr: win.devicePixelRatio,
         vp: getViewportDimensions(),
-        ah: getWindowSelf().screen.availHeight,
+        ah: win.screen.availHeight,
         mtp: win.navigator.maxTouchPoints
       }
     }
