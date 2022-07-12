@@ -334,12 +334,15 @@ function setExtensions(obj = {}, extFields) {
 
 // BUILD REQUESTS: IMP
 function _buildImpORTB(bidRequest) {
+  const gpid = deepAccess(bidRequest, 'ortb2Imp.ext.gpid');
+
   const imp = {
     id: bidRequest.bidId,
     ext: {
       ttx: {
         prod: deepAccess(bidRequest, 'params.productId')
-      }
+      },
+      ...(gpid ? { gpid } : {})
     }
   };
 
