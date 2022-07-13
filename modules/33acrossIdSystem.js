@@ -32,18 +32,17 @@ function getEnvelope(response) {
 
 function calculateQueryStringParams(pid, gdprConsentData) {
   const uspString = uspDataHandler.getConsentData();
-  const gdprApplies = Boolean(gdprConsentData?.gdprApplies);
   const params = {
     pid,
-    gdpr: Number(gdprApplies),
+    gdpr: Number(Boolean(gdprConsentData?.gdprApplies)),
   };
 
   if (uspString) {
     params.us_privacy = uspString;
   }
 
-  if (gdprApplies) {
-    params.gdpr_consent = gdprConsentData.consentString || '';
+  if (gdprConsentData?.consentString) {
+    params.gdpr_consent = gdprConsentData.consentString;
   }
 
   return params;
