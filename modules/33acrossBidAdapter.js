@@ -86,7 +86,9 @@ function calculateUaReducedData() {
   ).then((uaData) => {
     uaReducedData = uaData;
 
-    storeUaReducedData(uaReducedData);
+    if (Object.values(uaData).find(value => !!value).length) {
+      storeUaReducedData(uaReducedData);
+    }
   });
 
   return uaReducedData;
