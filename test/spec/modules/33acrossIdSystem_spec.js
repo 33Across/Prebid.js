@@ -64,42 +64,17 @@ describe('33acrossIdSystem', () => {
 
         expect(request.url).to.contain('gdpr=1');
       });
-
-      context('and the consent string is given', () => {
-        it('should call endpoint with the GDPR consent string', () => {
-          [
-            { consentString: '', expected: '' },
-            { consentString: undefined, expected: '' },
-            { consentString: 'foo', expected: 'foo' }
-          ].forEach(({ consentString, expected }, index) => {
-            const completeCallback = () => {};
-            const { callback } = thirthyThreeAcrossIdSubmodule.getId({
-              params: {
-                pid: '12345'
-              }
-            }, {
-              gdprApplies: true,
-              consentString
-            });
-
-            callback(completeCallback);
-
-            expect(server.requests[index].url).to.contain(`gdpr_consent=${expected}`);
-          });
-        });
-      });
     });
 
     context('when GDPR doesn\'t apply', () => {
-      it('should call endpoint with \'gdpr=0\' and no GDPR consent string parameter', () => {
+      it('should call endpoint with \'gdpr=0\'', () => {
         const completeCallback = () => {};
         const { callback } = thirthyThreeAcrossIdSubmodule.getId({
           params: {
             pid: '12345'
           }
         }, {
-          gdprApplies: false,
-          consentString: 'foo'
+          gdprApplies: false
         });
 
         callback(completeCallback);
@@ -107,7 +82,46 @@ describe('33acrossIdSystem', () => {
         const [request] = server.requests;
 
         expect(request.url).to.contain('gdpr=0');
-        expect(request.url).not.to.contain('gdpr_consent');
+      });
+    });
+
+    context('when the GDPR consent string is given', () => {
+      it('should call endpoint with the GDPR consent string', () => {
+        const completeCallback = () => {};
+        const { callback } = thirthyThreeAcrossIdSubmodule.getId({
+          params: {
+            pid: '12345'
+          }
+        }, {
+          consentString: 'foo'
+        });
+
+        callback(completeCallback);
+
+        const [request] = server.requests;
+
+        expect(request.url).to.contain('gdpr_consent=foo');
+      });
+    });
+
+    context('when the GDPR consent string is falsy', () => {
+      it('should call endpoint without the GDPR consent string', () => {
+        ['', undefined, null].forEach(consentString => {
+          const completeCallback = () => {};
+          const { callback } = thirthyThreeAcrossIdSubmodule.getId({
+            params: {
+              pid: '12345'
+            }
+          }, {
+            consentString
+          });
+
+          callback(completeCallback);
+
+          const [request] = server.requests;
+
+          expect(request.url).not.to.contain(`gdpr_consent`);
+        });
       });
     });
 
@@ -398,7 +412,7 @@ describe('33acrossIdSystem', () => {
 
         expect(completeCallback.calledOnceWithExactly()).to.be.true;
       });
-    })
+    });
   })
 
   describe('decode', () => {
