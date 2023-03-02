@@ -1,4 +1,4 @@
-import { thirthyThreeAcrossIdSubmodule } from 'modules/33acrossIdSystem.js';
+import { thirthyThreeAcrossIdSubmodule, storage } from 'modules/33acrossIdSystem.js';
 import * as utils from 'src/utils.js';
 
 import { server } from 'test/mocks/xhr.js';
@@ -20,7 +20,6 @@ describe('33acrossIdSystem', () => {
   describe('getId', () => {
     it('should call endpoint and handle valid response', () => {
       const completeCallback = sinon.spy();
-
       const { callback } = thirthyThreeAcrossIdSubmodule.getId({
         params: {
           pid: '12345'
@@ -48,6 +47,43 @@ describe('33acrossIdSystem', () => {
 
       expect(request.url).to.match(regExp);
       expect(completeCallback.calledOnceWithExactly('foo')).to.be.true;
+    });
+
+    it('stores the extension data provided in the response', () => {
+      const completeCallback = () => {};
+      const setDataInLocalStorage = sinon.spy(storage, 'setDataInLocalStorage');
+
+      const { callback } = thirthyThreeAcrossIdSubmodule.getId({
+        params: {
+          pid: '12345'
+        }
+      });
+
+      callback((completeCallback));
+
+      const [request] = server.requests;
+
+      request.respond(200, {
+        'Content-Type': 'application/json'
+      }, JSON.stringify({
+        succeeded: true,
+        data: {
+          envelope: 'foo',
+          ext: {
+            eids: {
+              foosourcename: {
+                id: 'someId',
+                ext: {
+                  stype: 'ppuid'
+                }
+              }
+            }
+          }
+        },
+        expires: 1645667805067
+      }));
+
+      expect(setDataInLocalStorage.calledOnceWithExactly('33acrossId_ext', '{"eids":{"foosourcename":{"id":"someId","ext":{"stype":"ppuid"}}}}')).to.be.true;
     });
 
     context('when GDPR applies', () => {
@@ -409,6 +445,22 @@ describe('33acrossIdSystem', () => {
       expect(thirthyThreeAcrossIdSubmodule.decode('foo')).to.deep.equal({
         [thirthyThreeAcrossIdSubmodule.name]: {
           envelope: 'foo'
+        }
+      });
+    });
+
+    it('returns the stored additional IDs as well', () => {
+      sinon.stub(storage, 'getDataFromLocalStorage').returns('{"eids":{"foosourcename":{"id":"someId","ext":{"stype":"ppuid"}}}}');
+
+      expect(thirthyThreeAcrossIdSubmodule.decode('foo')).to.deep.equal({
+        [thirthyThreeAcrossIdSubmodule.name]: {
+          envelope: 'foo'
+        },
+        foosourcename: {
+          id: 'someId',
+          ext: {
+            stype: 'ppuid'
+          }
         }
       });
     });
