@@ -402,6 +402,16 @@ export const USER_IDS_CONFIG = {
         };
       }
     }
+  },
+  'rubicon': {
+    source: 'rubiconproject.com',
+    atype: 1,
+    getUidExt: function(data) {
+      return data.ext;
+    },
+    getValue: function getValue(data) {
+      return data.id;
+    }
   }
 };
 
