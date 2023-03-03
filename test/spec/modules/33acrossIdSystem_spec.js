@@ -450,7 +450,9 @@ describe('33acrossIdSystem', () => {
     });
 
     it('returns the stored additional IDs as well', () => {
-      sinon.stub(storage, 'getDataFromLocalStorage').returns('{"eids":{"foosourcename":{"id":"someId","ext":{"stype":"ppuid"}}}}');
+      sinon.stub(storage, 'getDataFromLocalStorage')
+        .withArgs('33acrossId_ext')
+        .returns('{"eids":{"foosourcename":{"id":"someId","ext":{"stype":"ppuid"}}}}');
 
       expect(thirthyThreeAcrossIdSubmodule.decode('foo')).to.deep.equal({
         [thirthyThreeAcrossIdSubmodule.name]: {
