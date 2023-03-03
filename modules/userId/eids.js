@@ -378,6 +378,16 @@ export const USER_IDS_CONFIG = {
         };
       }
     }
+  },
+  'rubicon': {
+    source: 'rubiconproject.com',
+    atype: 1,
+    getUidExt: function(data) {
+      return data.ext;
+    },
+    getValue: function(data) {
+      return data.id;
+    }
   }
 };
 
