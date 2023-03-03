@@ -84,6 +84,8 @@ describe('33acrossIdSystem', () => {
       }));
 
       expect(setDataInLocalStorage.calledOnceWithExactly('33acrossId_ext', '{"eids":{"foosourcename":{"id":"someId","ext":{"stype":"ppuid"}}}}')).to.be.true;
+
+      setDataInLocalStorage.restore();
     });
 
     context('when GDPR applies', () => {
@@ -441,6 +443,14 @@ describe('33acrossIdSystem', () => {
   })
 
   describe('decode', () => {
+    beforeEach(() => {
+      sinon.stub(storage, 'getDataFromLocalStorage');
+    });
+
+    afterEach(() => {
+      storage.getDataFromLocalStorage.restore();
+    })
+
     it('should wrap the given value inside an object literal', () => {
       expect(thirthyThreeAcrossIdSubmodule.decode('foo')).to.deep.equal({
         [thirthyThreeAcrossIdSubmodule.name]: {
@@ -450,7 +460,7 @@ describe('33acrossIdSystem', () => {
     });
 
     it('returns the stored additional IDs as well', () => {
-      sinon.stub(storage, 'getDataFromLocalStorage')
+      storage.getDataFromLocalStorage
         .withArgs('33acrossId_ext')
         .returns('{"eids":{"foosourcename":{"id":"someId","ext":{"stype":"ppuid"}}}}');
 
