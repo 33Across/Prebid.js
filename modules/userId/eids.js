@@ -385,7 +385,7 @@ export const USER_IDS_CONFIG = {
     getUidExt: function(data) {
       return data.ext;
     },
-    getValue: function getValue(data) {
+    getValue: function(data) {
       return data.id;
     }
   }

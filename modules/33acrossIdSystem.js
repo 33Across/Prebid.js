@@ -74,12 +74,11 @@ export const thirthyThreeAcrossIdSubmodule = {
    * decode the stored id value for passing to bid requests
    * @function
    * @param {string} id
-   * @returns {{'33acrossId':{ envelope: string}}}
+   * @returns {{'33acrossId':{ envelope: string}, <string>: { id: string, ext: Object }}}
    */
   decode(id) {
     const ext =
       JSON.parse(storage.getDataFromLocalStorage('33acrossId_ext') || '{}');
-
 
     return {
       [MODULE_NAME]: {
