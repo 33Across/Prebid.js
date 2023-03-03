@@ -39,7 +39,7 @@ function calculateResponseObj(response) {
 
   return {
     envelope: response.data.envelope,
-    ext: { ...response.data.ext }
+    ext: response.data.ext
   };
 }
 
