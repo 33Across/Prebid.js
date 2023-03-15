@@ -199,20 +199,14 @@ function _buildRequestParams(bidRequests, bidderRequest) {
     gdprApplies: false
   }, bidderRequest && bidderRequest.gdprConsent);
 
-  const uspConsent = bidderRequest && bidderRequest.uspConsent;
-
-  const pageUrl = bidderRequest?.refererInfo?.page;
-
-  const referer = bidderRequest?.refererInfo?.ref;
-
   adapterState.uniqueSiteIds = bidRequests.map(req => req.params.siteId).filter(uniques);
 
   return {
     ttxSettings,
     gdprConsent,
-    uspConsent,
-    pageUrl,
-    referer
+    uspConsent: bidderRequest?.uspConsent,
+    pageUrl: bidderRequest?.refererInfo?.page,
+    referer: bidderRequest?.refererInfo?.ref
   }
 }
 
