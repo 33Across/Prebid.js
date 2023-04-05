@@ -210,6 +210,7 @@ describe('33acrossIdSystem', () => {
           { gppString: '', expected: '' },
           { gppString: undefined, expected: '' },
           { gppString: 'foo', expected: 'foo' },
+          { gppString: 'foo/=', expected: 'foo%2F%3D' },
         ].forEach(({ gppString, expected }, index) => {
           const completeCallback = () => {};
           const { callback } = thirthyThreeAcrossIdSubmodule.getId({

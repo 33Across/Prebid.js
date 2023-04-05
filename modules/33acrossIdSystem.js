@@ -58,7 +58,7 @@ function calculateQueryStringParams(pid, gdprConsentData) {
   if (gppConsent) {
     const { gppString = '', applicableSections = [] } = gppConsent;
 
-    params.gpp = gppString;
+    params.gpp = encodeURIComponent(gppString);
     params.gpp_sid = encodeURIComponent(applicableSections.join(','))
   }
 
