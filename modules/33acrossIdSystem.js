@@ -11,6 +11,7 @@ import { submodule } from '../src/hook.js';
 import { uspDataHandler, coppaDataHandler, gppDataHandler } from '../src/adapterManager.js';
 import { getStorageManager, STORAGE_TYPE_COOKIES, STORAGE_TYPE_LOCALSTORAGE } from '../src/storageManager.js';
 import { MODULE_TYPE_UID } from '../src/activities/modules.js';
+import { domainOverrideToRootDomain } from '../libraries/domainOverrideToRootDomain/index.js';
 
 /**
  * @typedef {import('../modules/userId/index.js').Submodule} Submodule
@@ -197,6 +198,7 @@ export const thirthyThreeAcrossIdSubmodule = {
       }
     };
   },
+  domainOverride: domainOverrideToRootDomain(storage, MODULE_NAME),
   eids: {
     '33acrossId': {
       source: '33across.com',

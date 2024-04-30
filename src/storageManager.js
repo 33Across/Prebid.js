@@ -16,6 +16,8 @@ import {activityParams} from './activities/activityParams.js';
 export const STORAGE_TYPE_LOCALSTORAGE = 'html5';
 export const STORAGE_TYPE_COOKIES = 'cookie';
 
+// export const STORAGE_TYPE_COOKIES = 'cookie';
+
 export let storageCallbacks = [];
 
 /*
@@ -68,6 +70,18 @@ export function newStorageManager({moduleName, moduleType} = {}, {isAllowed = is
       }
     }
     return schedule(cb, STORAGE_TYPE_COOKIES, done);
+  };
+
+  const setDataInStorage = function(key, value, storageTypes = [ STORAGE_TYPE_LOCALSTORAGE, STORAGE_TYPE_COOKIES ],
+    cookieAttrs, done) {
+    storageTypes.forEach(type => {
+      if (type === STORAGE_TYPE_LOCALSTORAGE) {
+        setDataInLocalStorage(key, value, done);
+      } else if (type === STORAGE_TYPE_COOKIES) {
+        cookieAttrs ??= {};
+        setCookie(key, value, cookieAttrs.expires, cookieAttrs.sameSite, cookieAttrs.domain, done);
+      }
+    });
   };
 
   /**
@@ -207,13 +221,16 @@ export function newStorageManager({moduleName, moduleType} = {}, {isAllowed = is
   return {
     setCookie,
     getCookie,
-    localStorageIsEnabled,
     cookiesAreEnabled,
+    findSimilarCookies,
+
+    setDataInStorage,
+
+    localStorageIsEnabled,
     setDataInLocalStorage,
     getDataFromLocalStorage,
     removeDataFromLocalStorage,
-    hasLocalStorage,
-    findSimilarCookies
+    hasLocalStorage
   }
 }
 
