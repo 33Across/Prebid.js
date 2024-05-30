@@ -4,36 +4,37 @@ import { logError, logWarn, insertElement, setScriptAttributes } from './utils.j
 const _requestCache = new WeakMap();
 // The below list contains modules or vendors whom Prebid allows to load external JS.
 const _approvedLoadExternalJSList = [
+  // Prebid maintained modules:
   'debugging',
-  'adloox',
-  'criteo',
   'outstream',
+  // Bid Modules:
   'adagio',
-  'spotx',
-  'browsi',
-  'brandmetrics',
-  'justtag',
-  'tncId',
-  'akamaidap',
-  'ftrackId',
-  'inskin',
-  'hadron',
-  'medianet',
   'improvedigital',
-  'azerionedge',
+  // RTD modules:
   'aaxBlockmeter',
-  'confiant',
+  'adloox',
+  'akamaidap',
   'arcspan',
   'airgrid',
+  'browsi',
+  'brandmetrics',
   'clean.io',
+  'confiant',
+  'contxtful',
+  'hadron',
+  'mediafilter',
+  'medianet',
+  'azerionedge',
   'a1Media',
   'geoedge',
-  'mediafilter',
   'qortex',
   'dynamicAdBoost',
-  'contxtful',
-  'id5',
   '51Degrees',
+  // UserId Submodules
+  'justtag',
+  'tncId',
+  'ftrackId',
+  'id5',
 ];
 
 /**

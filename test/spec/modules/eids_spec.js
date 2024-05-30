@@ -80,20 +80,6 @@ describe('eids array generation for known sub-modules', function() {
     });
   });
 
-  it('parrableId', function() {
-    const userId = {
-      parrableId: {
-        eid: 'some-random-id-value'
-      }
-    };
-    const newEids = createEidsArray(userId);
-    expect(newEids.length).to.equal(1);
-    expect(newEids[0]).to.deep.equal({
-      source: 'parrable.com',
-      uids: [{id: 'some-random-id-value', atype: 1}]
-    });
-  });
-
   it('merkleId (legacy) - supports single id', function() {
     const userId = {
       merkleId: {
@@ -439,18 +425,6 @@ describe('eids array generation for known sub-modules', function() {
     expect(newEids.length).to.equal(1);
     expect(newEids[0]).to.deep.equal({
       source: 'liveintent.com',
-      uids: [{id: 'some-random-id-value', atype: 3}]
-    });
-  });
-
-  it('britepoolId', function() {
-    const userId = {
-      britepoolid: 'some-random-id-value'
-    };
-    const newEids = createEidsArray(userId);
-    expect(newEids.length).to.equal(1);
-    expect(newEids[0]).to.deep.equal({
-      source: 'britepool.com',
       uids: [{id: 'some-random-id-value', atype: 3}]
     });
   });
