@@ -27,6 +27,7 @@ const GVLID = 58;
 
 const STORAGE_FPID_KEY = '33acrossIdFp';
 const STORAGE_TPID_KEY = '33acrossIdTp';
+const STORAGE_HEM_KEY = '33acrossIdHm'
 const DEFAULT_1PID_SUPPORT = true;
 const DEFAULT_TPID_SUPPORT = true;
 
@@ -97,6 +98,11 @@ function calculateQueryStringParams(pid, gdprConsentData, enabledStorageTypes) {
     params.tp = encodeURIComponent(tp);
   }
 
+  const hem = getStoredValue(STORAGE_HEM_KEY, enabledStorageTypes);
+  if (hem) {
+    params.sha256 = encodeURIComponent(hem);
+  }
+
   return params;
 }
 
@@ -146,7 +152,7 @@ function handleSupplementalId(key, id, storageConfig) {
 }
 
 /** @type {Submodule} */
-export const thirthyThreeAcrossIdSubmodule = {
+export const thirtyThreeAcrossIdSubmodule = {
   /**
    * used to link submodule with config
    * @type {string}
@@ -246,4 +252,4 @@ export const thirthyThreeAcrossIdSubmodule = {
   }
 };
 
-submodule('userId', thirthyThreeAcrossIdSubmodule);
+submodule('userId', thirtyThreeAcrossIdSubmodule);
