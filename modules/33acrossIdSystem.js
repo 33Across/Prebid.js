@@ -98,9 +98,9 @@ function calculateQueryStringParams({ pid, hem }, gdprConsentData, enabledStorag
     params.tp = encodeURIComponent(tp);
   }
 
-  const hemParam = hem || getStoredValue(STORAGE_HEM_KEY, enabledStorageTypes);
-  if (hemParam) {
-    params.sha256 = encodeURIComponent(hemParam);
+  const hashedEmail = hem || getStoredValue(STORAGE_HEM_KEY, enabledStorageTypes);
+  if (hashedEmail) {
+    params.sha256 = encodeURIComponent(hashedEmail);
   }
 
   return params;
@@ -145,10 +145,44 @@ function getStoredValue(key, enabledStorageTypes) {
   return storedValue;
 }
 
-function handleSupplementalId(key, id, storageConfig) {
-  id
-    ? storeValue(key, id, storageConfig)
-    : deleteFromStorage(key);
+function filterSupplementalIds({ tp, fp, hem }, { storeFpid, storeTpid }) {
+  const ids = [];
+
+  if (storeFpid) {
+    ids.push(
+      [STORAGE_FPID_KEY, fp, true],
+      [STORAGE_HEM_KEY, hem, false]
+    );
+  }
+
+  if (storeTpid) {
+    ids.push([STORAGE_TPID_KEY, tp, true]);
+  }
+
+  return ids;
+}
+
+function handleSupplementalId(supplementalId, storageConfig) {
+  const [ key, id, clear ] = supplementalId;
+
+  if (id) {
+    storeValue(key, id, storageConfig);
+
+    return;
+  }
+
+  if (clear) {
+    deleteFromStorage(key);
+  }
+}
+
+function handleSupplementalIds(ids, { enabledStorageTypes, expires, ...options }) {
+  filterSupplementalIds(ids, options).forEach((supplementalId) => {
+    handleSupplementalId(supplementalId, {
+      enabledStorageTypes,
+      expires
+    })
+  });
 }
 
 /** @type {Submodule} */
@@ -197,7 +231,8 @@ export const thirtyThreeAcrossIdSubmodule = {
     const {
       storeFpid = DEFAULT_1PID_SUPPORT,
       storeTpid = DEFAULT_TPID_SUPPORT, apiUrl = API_URL,
-      ...options
+      pid,
+      hem = window._33across?.hem?.sha256
     } = params;
 
     return {
@@ -218,19 +253,16 @@ export const thirtyThreeAcrossIdSubmodule = {
               });
             }
 
-            if (storeFpid) {
-              handleSupplementalId(STORAGE_FPID_KEY, responseObj.fp, {
-                enabledStorageTypes,
-                expires: storageConfig.expires
-              });
-            }
-
-            if (storeTpid) {
-              handleSupplementalId(STORAGE_TPID_KEY, responseObj.tp, {
-                enabledStorageTypes,
-                expires: storageConfig.expires
-              });
-            }
+            handleSupplementalIds({
+              fp: responseObj.fp,
+              tp: responseObj.tp,
+              hem
+            }, {
+              storeFpid,
+              storeTpid,
+              enabledStorageTypes,
+              expires: storageConfig.expires
+            });
 
             cb(responseObj.envelope);
           },
@@ -239,7 +271,7 @@ export const thirtyThreeAcrossIdSubmodule = {
 
             cb();
           }
-        }, calculateQueryStringParams(options, gdprConsentData, enabledStorageTypes), {
+        }, calculateQueryStringParams({ pid, hem }, gdprConsentData, enabledStorageTypes), {
           method: 'GET',
           withCredentials: true
         });
