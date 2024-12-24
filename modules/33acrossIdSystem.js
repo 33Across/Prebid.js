@@ -145,31 +145,40 @@ function getStoredValue(key, enabledStorageTypes) {
   return storedValue;
 }
 
-function calculateSupplementalIds({ tp, fp }, { storeFpid, storeTpid }) {
-  const ids = {};
+function filterSupplementalIds({ tp, fp, hem }, { storeFpid, storeTpid }) {
+  const ids = [];
 
   if (storeFpid) {
-    ids[STORAGE_FPID_KEY] = fp;
+    ids.push(
+      [STORAGE_FPID_KEY, fp, true],
+      [STORAGE_HEM_KEY, hem, false]
+    );
   }
 
   if (storeTpid) {
-    ids[STORAGE_TPID_KEY] = tp;
+    ids.push([STORAGE_TPID_KEY, tp, true]);
   }
 
   return ids;
 }
 
-function handleSupplementalId(key, id, storageConfig) {
-  id
-    ? storeValue(key, id, storageConfig)
-    : deleteFromStorage(key);
+function handleSupplementalId(supplementalId, storageConfig) {
+  const [ key, id, clear ] = supplementalId;
+
+  if (id) {
+    storeValue(key, id, storageConfig);
+
+    return;
+  }
+
+  if (clear) {
+    deleteFromStorage(key);
+  }
 }
 
 function handleSupplementalIds(ids, { enabledStorageTypes, expires, ...options }) {
-  const supplementalIds = calculateSupplementalIds(ids, options);
-
-  Object.entries(supplementalIds).forEach(([ storageKey, value ]) => {
-    handleSupplementalId(storageKey, value, {
+  filterSupplementalIds(ids, options).forEach((supplementalId) => {
+    handleSupplementalId(supplementalId, {
       enabledStorageTypes,
       expires
     })
@@ -246,7 +255,8 @@ export const thirtyThreeAcrossIdSubmodule = {
 
             handleSupplementalIds({
               fp: responseObj.fp,
-              tp: responseObj.tp
+              tp: responseObj.tp,
+              hem
             }, {
               storeFpid,
               storeTpid,
